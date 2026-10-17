@@ -150,6 +150,21 @@
     .hoje-big { font-family: var(--font-display); font-size: 2.2rem; font-weight: 900; font-style: italic; color: var(--accent); line-height: 1; }
     .hoje-empty { color: var(--text-muted); font-size: 0.85rem; }
 
+    /* Página da faixa */
+    .track-page { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 20px; overflow-y: auto; align-content: start; padding-bottom: 20px; }
+    .track-page-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+    .track-page #waveform { height: 140px !important; }
+    .track-page #versionPanel { background: transparent !important; border: none !important; padding: 0 !important; }
+    .track-page #versionCommentsList { max-height: none !important; }
+    .version-tab { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 7px 12px; cursor: pointer; font-size: 0.82rem; font-weight: 600; border-radius: var(--radius); }
+    .version-tab:hover { color: var(--accent); border-color: var(--border-strong); }
+    .version-tab.active { color: var(--accent); border-color: var(--accent-gold); }
+    .page-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .page-add input[type="text"] { flex: 1 1 100%; }
+    .page-add input[type="date"] { flex: 1 1 auto !important; }
+    .page-add input { flex: 1; min-width: 0; background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 10px; border-radius: var(--radius); }
+    @media (max-width: 1000px) { .track-page { grid-template-columns: 1fr; } }
+
     /* Modais */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(6px); display: none; justify-content: center; align-items: center; z-index: 1000; }
     .modal-overlay.active { display: flex; }
@@ -288,6 +303,33 @@
             <h2>Aprendizados Sistematizados</h2>
           </header>
           <div id="globalAprendizadosList" class="splice-list"></div>
+        </section>
+
+        <!-- VIEW: PÁGINA DA FAIXA (aberta pelo modal, sem item no menu) -->
+        <section id="view-faixa" class="view">
+          <header>
+            <div style="display:flex; align-items:center; gap:14px; min-width:0;">
+              <button class="btn-action" onclick="closeTrackPage()" title="Voltar" style="padding:8px 12px;">←</button>
+              <div style="min-width:0;">
+                <h2 id="trackPageTitle"></h2>
+                <div id="trackPageMeta" class="row-sub" style="margin-top:6px;"></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-action" style="padding:8px 14px;" onclick="tocarFaixaById(trackPageId)">▶ Tocar</button>
+              <button class="btn-primary" onclick="openTrackModal(trackPageId)">Editar</button>
+            </div>
+          </header>
+          <div class="track-page">
+            <div class="track-page-col">
+              <div class="scenario-card">
+                <div class="kanban-header" style="padding:0;"><span>Versões e comentários</span></div>
+                <div id="trackPageVersions" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+                <div id="trackPagePanelSlot"></div>
+              </div>
+            </div>
+            <div class="track-page-col" id="trackPageSide"></div>
+          </div>
         </section>
 
         <!-- VIEW: CATÁLOGO -->
@@ -471,7 +513,10 @@
   <!-- MODAL: FAIXA -->
   <div id="trackModal" class="modal-overlay">
     <div class="modal">
-      <h3 id="trackModalTitle">Faixa</h3>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <h3 id="trackModalTitle" style="flex:1;">Faixa</h3>
+        <button type="button" class="btn-action" style="padding:6px 12px;" onclick="expandTrackModal()" title="Salva e abre a página da faixa">⤢ Página</button>
+      </div>
       
       <div class="form-row">
         <div class="form-group">
@@ -582,6 +627,7 @@
             </div>
           </div>
           <canvas id="waveform" style="width:100%; height:64px; cursor:pointer; display:block;" onclick="seekWaveform(event)" title="Clique para ouvir a partir deste ponto"></canvas>
+          <div id="versionSections" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;"></div>
           <div style="display:flex; gap:8px;">
             <input type="text" id="newCommentText" placeholder="Comentário neste ponto (ex: kick embolando com o baixo)" style="flex:1;" onkeydown="if(event.key === 'Enter') addVersionComment()">
             <button type="button" class="btn-primary" onclick="addVersionComment()">Comentar em <span id="commentTimeLabel" class="font-mono">00:00</span></button>
@@ -923,7 +969,9 @@
               if (item[field] != null && !Array.isArray(item[field])) throw Error('Lista inválida: ' + field);
               item[field] = (item[field] || []).map(x => {
                 if (!x || typeof x !== 'object') throw Error('Anotação inválida');
-                return {...x, desc:String(x.desc || ''), date:String(x.date || ''), tags:strings(x.tags)};
+                const out = {...x, desc:String(x.desc || ''), date:String(x.date || ''), tags:strings(x.tags)};
+                if (field === 'tasks' && x.commentId) { out.commentId = String(x.commentId); out.commentKey = String(x.commentKey || ''); }
+                return out;
               });
             }
             for (const [field,list] of [['project','projects'],['label','labels'],['genre','genres']]) {
@@ -986,8 +1034,14 @@
         if (item.comments != null && !Array.isArray(item.comments)) throw Error('Lista inválida: comments');
         item.comments = (item.comments || []).map(c => {
           if (!c || typeof c !== 'object') throw Error('Comentário inválido');
-          return {t: Number.isFinite(Number(c.t)) && Number(c.t) >= 0 ? Number(c.t) : 0, text: String(c.text || ''), done: !!c.done};
+          return {id: /^[\w-]+$/.test(c.id || '') ? c.id : newId('c_'), t: Number.isFinite(Number(c.t)) && Number(c.t) >= 0 ? Number(c.t) : 0,
+            text: String(c.text || ''), done: !!c.done, from: String(c.from || '')};
         });
+        if (item.sections != null && !Array.isArray(item.sections)) throw Error('Lista inválida: sections');
+        item.sections = (item.sections || []).map(x => {
+          if (!x || typeof x !== 'object') throw Error('Seção inválida');
+          return {t: Number.isFinite(Number(x.t)) && Number(x.t) >= 0 ? Number(x.t) : 0, name: String(x.name || 'Seção')};
+        }).sort((a, b) => a.t - b.t);
       }
       return data;
     }
@@ -1175,7 +1229,7 @@
     // Only the visible view is rebuilt; switchView renders the next one when it is opened.
     let activeView = 'hoje';
     const VIEW_RENDERERS = {
-      hoje: () => renderHoje(), mesa: () => renderMesa(), tarefas: () => renderGlobalTasks(), demos: () => renderDemos(), aprendizados: () => renderGlobalAprendizados(),
+      hoje: () => renderHoje(), faixa: () => renderTrackPage(), mesa: () => renderMesa(), tarefas: () => renderGlobalTasks(), demos: () => renderDemos(), aprendizados: () => renderGlobalAprendizados(),
       catalogo: () => renderCatalogo(), projetos: () => { renderCadastrosBase(); renderAudioLibrary(); renderCoverLibrary(); },
       matutando: () => renderMatutandoE_Releases(), releases: () => renderMatutandoE_Releases(), sets: () => renderSetsView(), contatos: () => renderContacts(), financeiro: () => renderFinanceiro()
     };
@@ -1362,8 +1416,10 @@
       if(!val) return alert('Selecione um áudio da biblioteca.');
 
       if(!draftTrack.audioHistory) draftTrack.audioHistory = [];
+      const previous = draftTrack.audio && draftTrack.audio !== val ? draftTrack.audio : draftTrack.audioHistory.filter(k => k !== val).at(-1);
       if(!draftTrack.audioHistory.includes(val)) {
         draftTrack.audioHistory.push(val);
+        if (previous) offerCarryOver(previous, val);
       }
 
       if(!draftTrack.audio || draftTrack.audioHistory.length === 1) {
@@ -1398,7 +1454,7 @@
     const peaksCache = new Map(), peaksLoading = new Set();
     const playingFocused = () => !!focusedVersionKey && currentAudioKey === focusedVersionKey && !!audioElem.src;
 
-    function focusVersion(key) { focusedVersionKey = key; renderModalAudioHistory(); }
+    function focusVersion(key) { focusedVersionKey = key; renderModalAudioHistory(); if (activeView === 'faixa') renderTrackPageVersions(); }
 
     function renderVersionPanel() {
       const panel = document.getElementById('versionPanel');
@@ -1442,7 +1498,7 @@
 
     function drawWaveform() {
       const canvas = document.getElementById('waveform');
-      const g = canvas.getContext?.('2d'), w = canvas.clientWidth, h = 64;
+      const g = canvas.getContext?.('2d'), w = canvas.clientWidth, h = canvas.clientHeight || 64;
       if (!g || !w) return;
       const dpr = globalThis.devicePixelRatio || 1;
       canvas.width = w * dpr; canvas.height = h * dpr;
@@ -1454,6 +1510,12 @@
         g.fillText(peaksCache.has(focusedVersionKey) ? 'Forma de onda indisponível (áudio ausente neste navegador ou link externo)' : 'Gerando forma de onda…', 8, 36);
         return;
       }
+      const secs = libItem(focusedVersionKey)?.sections || [];
+      secs.forEach((sec, i) => {
+        const x0 = sec.t / wf.duration * w, x1 = (secs[i + 1]?.t ?? wf.duration) / wf.duration * w;
+        g.fillStyle = SECTION_COLORS[i % SECTION_COLORS.length];
+        g.fillRect(x0, 0, x1 - x0, h);
+      });
       const top = Math.max(...wf.peaks) || 1, n = wf.peaks.length, barW = Math.max(1, w / n - 0.5);
       const progress = playingFocused() && Number.isFinite(audioElem.duration) ? audioElem.currentTime / audioElem.duration : 0;
       for (let i = 0; i < n; i++) {
@@ -1465,6 +1527,8 @@
         g.fillStyle = c.done ? '#737373' : '#eab308';
         g.fillRect(Math.min(w - 2, c.t / wf.duration * w), 0, 2, h);
       }
+      g.font = '10px sans-serif';
+      secs.forEach(sec => { g.fillStyle = '#d4d4d4'; g.fillText(sec.name, sec.t / wf.duration * w + 4, 11); });
     }
 
     function versionDuration() {
@@ -1498,16 +1562,23 @@
 
     function renderVersionComments() {
       const list = document.getElementById('versionCommentsList');
-      const comments = libItem(focusedVersionKey)?.comments || [];
+      const item = libItem(focusedVersionKey), comments = item?.comments || [];
+      const linked = new Set((draftTrack?.tasks || []).map(t => t.commentId).filter(Boolean));
       list.innerHTML = comments.length ? comments.map((c, idx) => `
         <div style="display:flex; align-items:center; gap:8px; padding:4px 6px; border-radius: var(--radius); background:var(--bg-card);">
           <input type="checkbox" ${c.done ? 'checked' : ''} onchange="toggleVersionComment(${idx})" style="width:auto;" title="Resolvido">
           <button type="button" class="btn-action font-mono" style="padding:1px 6px; font-size:11px;" onclick="playVersionAt(focusedVersionKey, ${c.t})" title="Ouvir a partir daqui">${formatTime(c.t)}</button>
-          <span style="flex:1; font-size:0.85rem; ${c.done ? 'text-decoration:line-through; color:var(--text-muted);' : 'color:#fff;'}">${escapeHtml(c.text)}</span>
+          <span style="flex:1; font-size:0.85rem; ${c.done ? 'text-decoration:line-through; color:var(--text-muted);' : 'color:#fff;'}">${sectionAt(item, c.t) ? `<span class="row-sub">${escapeHtml(sectionAt(item, c.t))} · </span>` : ''}${escapeHtml(c.text)}${c.from ? ` <span class="badge badge-outline" style="font-size:9px; text-transform:none;">da ${escapeHtml(c.from)}</span>` : ''}</span>
+          <button type="button" class="btn-action" style="padding:1px 8px; font-size:11px;${linked.has(c.id) ? ' color:var(--status-lancada);' : ''}" onclick="commentToTask(${idx})" title="${linked.has(c.id) ? 'Já virou tarefa' : 'Criar tarefa a partir deste comentário'}">${linked.has(c.id) ? '✓ tarefa' : '→ tarefa'}</button>
           <button type="button" class="btn-action" style="padding:1px 6px; border:none; color:#ef4444;" onclick="removeVersionComment(${idx})">✕</button>
         </div>`).join('')
         : '<p style="color:var(--text-muted); font-size:0.8rem;">Sem comentários. Toque a versão e comente no ponto exato.</p>';
       document.getElementById('commentTimeLabel').textContent = formatTime(playingFocused() ? audioElem.currentTime : 0);
+      renderVersionSections();
+    }
+    function refreshVersionUI() {
+      renderModalAudioHistory();
+      if (activeView === 'faixa') renderTrackPageVersions();
     }
     function addVersionComment() {
       const input = document.getElementById('newCommentText'), text = input.value.trim();
@@ -1515,20 +1586,89 @@
       if (!text) return;
       if (!item) return alert('Esta versão não está na Biblioteca de Áudios.');
       const t = playingFocused() ? Math.round(audioElem.currentTime * 10) / 10 : 0;
-      item.comments = [...(item.comments || []), {t, text, done: false}].sort((x, y) => x.t - y.t);
+      item.comments = [...(item.comments || []), {id: newId('c_'), t, text, done: false, from: ''}].sort((x, y) => x.t - y.t);
       saveData();
       input.value = '';
-      renderModalAudioHistory();
+      refreshVersionUI();
     }
     function toggleVersionComment(idx) {
       const c = libItem(focusedVersionKey)?.comments?.[idx];
       if (!c) return;
-      c.done = !c.done; saveData(); renderModalAudioHistory();
+      c.done = !c.done;
+      setLinkedTasksDone(c.id, c.done);
+      saveData();
+      if (document.getElementById('trackModal').classList.contains('active')) renderModalTasks();
+      if (activeView === 'faixa') renderTrackPage(); else refreshVersionUI();
     }
     function removeVersionComment(idx) {
       const item = libItem(focusedVersionKey);
       if (!item?.comments?.[idx]) return;
-      item.comments.splice(idx, 1); saveData(); renderModalAudioHistory();
+      item.comments.splice(idx, 1); saveData(); refreshVersionUI();
+    }
+
+    /* COMENTÁRIO → TAREFA */
+    // The task keeps the comment's id: finishing either one finishes the other.
+    function commentToTask(idx) {
+      const item = libItem(focusedVersionKey), c = item?.comments?.[idx];
+      if (!c || !draftTrack || (draftTrack.tasks || []).some(t => t.commentId === c.id)) return;
+      const sec = sectionAt(item, c.t);
+      const task = {desc: `${formatTime(c.t)}${sec ? ' · ' + sec : ''} — ${c.text} (${item.name})`, date: '', done: c.done, commentId: c.id, commentKey: focusedVersionKey};
+      (draftTrack.tasks = draftTrack.tasks || []).push({...task});
+      // Saved right away like the comment itself; also kept on the draft so saving the modal does not drop it.
+      const stored = state.tracks.find(t => t.id === draftTrack.id);
+      if (stored) { (stored.tasks = stored.tasks || []).push({...task}); saveData(); }
+      if (document.getElementById('trackModal').classList.contains('active')) renderModalTasks();
+      if (activeView === 'faixa') renderTrackPage(); else refreshVersionUI();
+    }
+    function setLinkedTasksDone(commentId, done) {
+      for (const t of [...state.tracks, draftTrack].filter(Boolean)) for (const task of t.tasks || []) if (task.commentId === commentId) task.done = done;
+    }
+    function setCommentDone(audioKey, commentId, done) {
+      const c = libItem(audioKey)?.comments?.find(x => x.id === commentId);
+      if (c) c.done = done;
+    }
+
+    /* SEÇÕES NA FORMA DE ONDA */
+    // Each marker starts a section that runs until the next one. Stored per version, since timings change between mixes.
+    const SECTION_COLORS = ['rgba(207,181,124,0.13)', 'rgba(59,130,246,0.13)', 'rgba(168,85,247,0.13)', 'rgba(16,185,129,0.13)', 'rgba(236,72,153,0.13)', 'rgba(234,179,8,0.13)'];
+    function sectionAt(item, t) {
+      let name = '';
+      for (const sec of item?.sections || []) if (sec.t <= t) name = sec.name;
+      return name;
+    }
+    function renderVersionSections() {
+      const box = document.getElementById('versionSections');
+      const secs = libItem(focusedVersionKey)?.sections || [];
+      box.innerHTML = secs.map((sec, idx) => `<span class="badge badge-outline" style="cursor:pointer; text-transform:none; font-size:0.72rem;" onclick="playVersionAt(focusedVersionKey, ${sec.t})" title="Ouvir a partir daqui"><span class="font-mono">${formatTime(sec.t)}</span> ${escapeHtml(sec.name)} <span onclick="event.stopPropagation(); removeSection(${idx})" style="color:#ef4444; margin-left:4px;" title="Remover seção">✕</span></span>`).join('')
+        + `<button type="button" class="btn-action" style="padding:3px 10px; font-size:0.75rem;" onclick="addSection()" title="Marca o início de uma seção no ponto que está tocando">+ Seção em <span id="sectionTimeLabel" class="font-mono">${formatTime(playingFocused() ? audioElem.currentTime : 0)}</span></button>`;
+    }
+    function addSection() {
+      const item = libItem(focusedVersionKey);
+      if (!item) return alert('Esta versão não está na Biblioteca de Áudios.');
+      const t = playingFocused() ? Math.round(audioElem.currentTime * 10) / 10 : 0;
+      const name = (prompt(`Nome da seção que começa em ${formatTime(t)} (ex: intro, build, drop, break, outro):`, '') || '').trim();
+      if (!name) return;
+      item.sections = [...(item.sections || []).filter(sec => sec.t !== t), {t, name}].sort((a, b) => a.t - b.t);
+      saveData(); refreshVersionUI();
+    }
+    function removeSection(idx) {
+      const item = libItem(focusedVersionKey);
+      if (!item?.sections?.[idx]) return;
+      item.sections.splice(idx, 1); saveData(); refreshVersionUI();
+    }
+
+    /* LEVAR PENDÊNCIAS PARA A NOVA VERSÃO */
+    function offerCarryOver(fromKey, toKey) {
+      const from = libItem(fromKey), to = libItem(toKey);
+      if (!from || !to || from === to) return;
+      const pending = (from.comments || []).filter(c => !c.done), secs = from.sections || [];
+      if (!pending.length && !secs.length) return;
+      const parts = [pending.length && `${pending.length} comentário${pending.length > 1 ? 's' : ''} pendente${pending.length > 1 ? 's' : ''}`, secs.length && `${secs.length} seç${secs.length > 1 ? 'ões' : 'ão'}`].filter(Boolean).join(' e ');
+      if (!confirm(`Levar ${parts} de "${from.name}" para "${to.name}"? Confira os tempos se o arranjo mudou.`)) return;
+      const have = new Set((to.comments || []).map(c => c.t + '|' + c.text));
+      to.comments = [...(to.comments || []), ...pending.filter(c => !have.has(c.t + '|' + c.text)).map(c => ({id: newId('c_'), t: c.t, text: c.text, done: false, from: from.name}))].sort((a, b) => a.t - b.t);
+      if (!(to.sections || []).length) to.sections = secs.map(sec => ({...sec}));
+      saveData();
     }
 
     function getPlayableAudioUrl(audioKeyOrUrl) {
@@ -1760,8 +1900,10 @@
     audioElem.addEventListener('timeupdate', () => {
       timeline.value = audioElem.currentTime;
       timeCurrent.textContent = formatTime(audioElem.currentTime);
-      if (playingFocused() && document.getElementById('trackModal').classList.contains('active')) {
+      if (playingFocused() && (document.getElementById('trackModal').classList.contains('active') || activeView === 'faixa')) {
         document.getElementById('commentTimeLabel').textContent = formatTime(audioElem.currentTime);
+        const secLabel = document.getElementById('sectionTimeLabel');
+        if (secLabel) secLabel.textContent = formatTime(audioElem.currentTime);
         drawWaveform();
       }
     });
@@ -1956,6 +2098,142 @@
     function removeFinanceEntry(idx) {
       draftScenario.finance.splice(idx, 1);
       renderScenarioFinance();
+    }
+
+    /* PÁGINA DA FAIXA */
+    // The page borrows the modal's version panel (waveform, A/B, timed comments) by moving the same DOM node,
+    // so both places share one implementation. openTrackModal moves it back.
+    const versionPanelHome = document.getElementById('versionPanel')?.parentNode;
+    let trackPageId = null, trackPageReturn = 'catalogo';
+
+    function openTrackPage(trackId) {
+      if (activeView !== 'faixa') trackPageReturn = activeView;
+      trackPageId = trackId;
+      switchView('faixa');
+    }
+    function closeTrackPage() {
+      versionPanelHome?.appendChild(document.getElementById('versionPanel'));
+      goTo(trackPageReturn || 'catalogo');
+    }
+    async function expandTrackModal() {
+      const id = draftTrack.id;
+      if (await saveTrack()) openTrackPage(id);
+    }
+
+    function renderTrackPage() {
+      const track = state.tracks.find(t => t.id === trackPageId);
+      if (!track) return goTo(trackPageReturn || 'catalogo');
+      draftTrack = JSON.parse(JSON.stringify(track));
+      draftTrack.audioHistory = draftTrack.audioHistory?.length ? draftTrack.audioHistory : (draftTrack.audio ? [draftTrack.audio] : []);
+      document.getElementById('trackPageTitle').textContent = track.title;
+      const camelot = toCamelot(track.key);
+      document.getElementById('trackPageMeta').innerHTML = [
+        `<span class="badge" style="color:${STATUS_COLORS[track.status]}; border:1px solid ${STATUS_COLORS[track.status]};">${escapeHtml(track.status)}</span>`,
+        escapeHtml(track.project || 'Sem projeto'), track.genre && escapeHtml(track.genre),
+        track.bpm && escapeHtml(track.bpm) + ' BPM', track.key && escapeHtml(track.key) + (camelot ? ` (${camelot})` : ''),
+        escapeHtml(track.duration || '00:00'), track.label && escapeHtml(track.label) + (track.labelConfirmed ? ' ✓' : '')
+      ].filter(Boolean).join(' • ');
+
+      document.getElementById('trackPagePanelSlot').appendChild(document.getElementById('versionPanel'));
+      if (!draftTrack.audioHistory.includes(focusedVersionKey)) focusedVersionKey = draftTrack.audio || draftTrack.audioHistory[0] || null;
+      renderVersionPanel();
+      renderTrackPageVersions();
+      renderTrackPageSide(track);
+    }
+
+    function renderTrackPageVersions() {
+      const box = document.getElementById('trackPageVersions');
+      box.innerHTML = '';
+      if (!draftTrack.audioHistory.length) {
+        hojeEmpty(box, 'Nenhuma versão de áudio. Use "Editar" para adicionar versões da Biblioteca de Áudios.');
+        return;
+      }
+      draftTrack.audioHistory.forEach(key => {
+        const item = libItem(key), open = (item?.comments || []).filter(c => !c.done).length;
+        const tab = document.createElement('button');
+        tab.className = 'version-tab' + (key === focusedVersionKey ? ' active' : '');
+        tab.innerHTML = `${escapeHtml(item?.name || 'Áudio desconhecido')}${key === draftTrack.audio ? ' <span style="color:var(--status-lancada);">●</span>' : ''}${open ? ` <span class="row-sub">(${open})</span>` : ''}`;
+        tab.title = key === draftTrack.audio ? 'Versão ativa' : 'Clique para ver esta versão';
+        tab.onclick = () => focusVersion(key);
+        box.appendChild(tab);
+      });
+    }
+
+    function pagePanel(container, title, count = null) {
+      const panel = document.createElement('div');
+      panel.className = 'scenario-card';
+      panel.style.gap = '8px';
+      panel.innerHTML = `<div class="kanban-header" style="padding:0;"><span>${title}</span>${count != null ? `<span>${count}</span>` : ''}</div>`;
+      container.appendChild(panel);
+      return panel;
+    }
+    function pageAddRow(panel, placeholder, onAdd, withDate = false) {
+      const row = document.createElement('div');
+      row.className = 'page-add';
+      row.innerHTML = `<input type="text" placeholder="${escapeHtml(placeholder)}">${withDate ? '<input type="date" style="flex:0 0 140px;">' : ''}<button type="button" class="btn-primary">Add</button>`;
+      const [text, date] = row.querySelectorAll('input');
+      const add = () => { const v = text.value.trim(); if (v) onAdd(v, date?.value || ''); };
+      row.querySelector('button').onclick = add;
+      text.onkeydown = e => { if (e.key === 'Enter') add(); };
+      panel.appendChild(row);
+    }
+
+    function renderTrackPageSide(track) {
+      const side = document.getElementById('trackPageSide');
+      side.innerHTML = '';
+
+      const tasks = track.tasks || [];
+      const tp = pagePanel(side, 'Tarefas', tasks.filter(t => !t.done).length);
+      tasks.forEach((t, idx) => hojeItem(tp, `<label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; text-transform:none;">
+          <input type="checkbox" ${t.done ? 'checked' : ''} style="width:auto;">
+          <span style="${t.done ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${escapeHtml(t.desc)}</span></label>
+        <span class="font-mono row-sub">${formatDate(t.date)}</span>`, () => pageToggleTask(idx)));
+      pageAddRow(tp, 'Nova tarefa', (desc, date) => pageAddTask(desc, date), true);
+
+      const learnings = track.learnings || [];
+      const lp = pagePanel(side, 'Aprendizados', learnings.length);
+      [...learnings].reverse().forEach(l => hojeItem(lp, `<span>${escapeHtml(l.desc)}</span><span class="font-mono row-sub">${formatDate(l.date)}</span>`, null));
+      pageAddRow(lp, 'O que você aprendeu nesta faixa?', desc => pageAddLearning(desc));
+
+      const subs = track.submissions || [];
+      if (subs.length) {
+        const sp = pagePanel(side, 'Envios', subs.length);
+        subs.forEach(s => hojeItem(sp, `<span>${escapeHtml(s.label)}</span><span class="row-sub">${escapeHtml(s.status)} • ${formatDate(s.date)}</span>`, () => goTo('demos')));
+      }
+
+      const releases = state.scenarios.filter(sc => sc.trackIds.includes(track.id)), sets = state.sets.filter(st => st.trackIds.includes(track.id));
+      if (releases.length || sets.length) {
+        const ap = pagePanel(side, 'Aparece em');
+        releases.forEach(sc => hojeItem(ap, `<span>${escapeHtml(sc.title)}</span><span class="row-sub">${sc.confirmed ? 'Release' : 'Planejamento'}${sc.releaseDate ? ' • ' + formatDate(sc.releaseDate) : ''}</span>`, () => openScenarioModal(sc.id)));
+        sets.forEach(st => hojeItem(ap, `<span>${escapeHtml(st.title)}</span><span class="row-sub">Set${st.data ? ' • ' + formatDate(st.data) : ''}</span>`, () => openSetModal(st.id)));
+      }
+
+      const info = [track.collabs?.length && 'Com: ' + track.collabs.map(escapeHtml).join(', '), track.tags?.length && 'Tags: ' + track.tags.map(escapeHtml).join(', ')].filter(Boolean);
+      if (info.length || track.dawPath) {
+        const ip = pagePanel(side, 'Projeto');
+        if (track.dawPath) hojeItem(ip, `<span class="font-mono" style="font-size:0.78rem; word-break:break-all;">${escapeHtml(track.dawPath)}</span><span class="row-sub">copiar</span>`,
+          () => navigator.clipboard?.writeText(track.dawPath).then(() => alert('Caminho copiado.'), () => {}));
+        info.forEach(line => { const d = document.createElement('div'); d.className = 'row-sub'; d.innerHTML = line; ip.appendChild(d); });
+      }
+    }
+
+    // Quick edits on the page save straight to the catalog (the modal keeps its own draft-and-save flow).
+    function pageTrack() { return state.tracks.find(t => t.id === trackPageId); }
+    function pageAddTask(desc, date) {
+      const t = pageTrack(); if (!t) return;
+      (t.tasks = t.tasks || []).push({desc, date, done: false});
+      saveData(); renderTrackPage();
+    }
+    function pageToggleTask(idx) {
+      const task = pageTrack()?.tasks?.[idx]; if (!task) return;
+      task.done = !task.done;
+      if (task.commentId) setCommentDone(task.commentKey, task.commentId, task.done);
+      saveData(); renderTrackPage();
+    }
+    function pageAddLearning(desc) {
+      const t = pageTrack(); if (!t) return;
+      (t.learnings = t.learnings || []).push({desc, date: todayISO(), tags: []});
+      saveData(); renderTrackPage();
     }
 
     /* PAINEL HOJE */
@@ -2355,6 +2633,7 @@
 
     /* MODAL DE FAIXAS */
     function openTrackModal(trackId = null) {
+      versionPanelHome?.appendChild(document.getElementById('versionPanel'));
       document.getElementById('trackModal').classList.add('active');
       ['newTaskDesc','newTaskDate','newLearningDesc','newLearningDate','newSubmissionDate'].forEach(id => document.getElementById(id).value = '');
       populateSelect('trackProject', state.projects);
@@ -2634,6 +2913,7 @@
       draftTrack.audio = currentAudioVal;
       draftTrack.audioExternal = safeUrl(document.getElementById('trackAudioExternal').value);
 
+      for (const task of draftTrack.tasks || []) if (task.commentId) setCommentDone(task.commentKey, task.commentId, task.done);
       const savingTrack = draftTrack;
       // Reading the audio length can take up to 4s; show it so the user does not close the modal and lose the edit.
       const saveBtn = document.getElementById('btnSaveTrack');
@@ -2649,6 +2929,7 @@
       saveData(); 
       closeModal('trackModal'); 
       renderAll();
+      return true;
     }
 
     function deleteTrack() {
@@ -2861,7 +3142,10 @@
       saveData(); closeModal('setModal'); renderAll();
     }
 
-    function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+      if (modalId === 'trackModal' && activeView === 'faixa') renderTrackPage();
+    }
 
     /* CADASTROS */
     function renderCadastrosBase() {
