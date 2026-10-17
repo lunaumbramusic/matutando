@@ -1,0 +1,12 @@
+# Dados pessoais: backups do catálogo nunca sobem para o repositório
+*.json
+
+# Documentos com dados do catálogo
+*.pdf
+PLANO-INTEGRACAO-SITE.md
+
+# Ferramentas legadas da versão anterior (contêm nomes e referências a dados reais)
+tests/app-original.html
+tests/audit.html
+tests/audit.js
+tests/fix_app.py

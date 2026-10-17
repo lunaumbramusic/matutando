@@ -1,0 +1,2989 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>matutando</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800;900&family=Syne:wght@400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Visual identity from the artist press kit (black, square cards, Orbitron/Syne, red hover)
+       and Optical (warm text, gold section labels). Offline the fonts fall back to system faces. */
+    :root {
+      color-scheme: dark;
+      --bg-dark: #050505;
+      --bg-card: #0c0c0c;
+      --bg-hover: #141414;
+      --accent: #ffffff;
+      --accent-red: #cc0000;
+      --accent-gold: #cfb57c;
+      --text-main: #f2f0eb;
+      --text-muted: #8f8e95;
+      --border-color: #222222;
+      --border-strong: #3a3a3a;
+      --radius: 2px;
+      --font-display: 'Orbitron', 'Arial Black', sans-serif;
+      --font-body: 'Syne', 'Segoe UI', Arial, sans-serif;
+
+      --status-ideia: #9ca3af;
+      --status-demo: #3b82f6;
+      --status-mix: #eab308;
+      --status-master: #a855f7;
+      --status-assinada: #ec4899;
+      --status-lancada: #10b981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { background-color: var(--bg-dark); color: var(--text-main); font-family: var(--font-body); height: 100vh; overflow: hidden; font-size: 14px; }
+    body { background: radial-gradient(ellipse at 70% -10%, #1a1a1a 0%, var(--bg-dark) 55%) fixed; }
+    button, input, select, textarea { font-family: inherit; }
+    :focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+
+    /* The player is the wrapper's last child, so the wrapper fills the whole viewport and the body takes what is left. */
+    .app-wrapper { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+    .app-body { display: flex; flex: 1; min-height: 0; overflow: hidden; width: 100%; }
+
+    .font-mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+
+    /* Sidebar */
+    sidebar { width: 240px; background: rgba(5,5,5,0.85); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 32px 18px; flex-shrink: 0; height: 100%; overflow-y: auto; }
+    sidebar h1 { font-family: var(--font-display); font-size: 1.45rem; font-weight: 900; font-style: italic; color: var(--accent); letter-spacing: -0.5px; line-height: 1; }
+    .brand-sub { display: block; margin: 8px 0 36px; font-size: 0.68rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent-gold); }
+    nav { display: flex; flex-direction: column; gap: 2px; }
+    nav button { width: 100%; background: none; border: none; border-left: 2px solid transparent; color: var(--text-muted); padding: 9px 12px; text-align: left; font-size: 0.88rem; cursor: pointer; transition: color 0.15s, background 0.15s, border-color 0.15s; font-weight: 600; }
+    nav button:hover { color: var(--text-main); background: var(--bg-hover); }
+    nav button.active { color: var(--accent); border-left-color: var(--accent-red); background: var(--bg-card); }
+
+    .sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 20px; }
+    .btn-action { background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius); cursor: pointer; font-size: 0.82rem; text-align: center; font-weight: 600; transition: 0.15s; }
+    .btn-action:hover { color: var(--accent); border-color: var(--accent); }
+    .btn-action:disabled { opacity: 0.5; cursor: wait; }
+
+    /* Main Content */
+    main { flex: 1; padding: 36px 40px; overflow-y: auto; display: flex; flex-direction: column; height: 100%; }
+    .view { display: none; height: 100%; flex-direction: column; }
+    .view.active { display: flex; }
+
+    header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 28px; flex-shrink: 0; padding-bottom: 18px; border-bottom: 1px solid var(--border-color); }
+    header h2 { font-family: var(--font-display); font-size: 1.6rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -1px; color: var(--accent); }
+
+    .btn-primary { background-color: var(--accent); color: #000; border: none; padding: 9px 16px; border-radius: var(--radius); cursor: pointer; font-family: var(--font-display); font-weight: 800; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; transition: background 0.15s, color 0.15s; }
+    .btn-primary:hover { background-color: var(--accent-red); color: #fff; }
+    .btn-primary:disabled { opacity: 0.6; cursor: wait; }
+
+    /* Kanban */
+    .kanban-board { display: flex; gap: 18px; flex: 1; overflow-x: auto; padding-bottom: 10px; }
+    .kanban-col { width: 290px; min-width: 290px; display: flex; flex-direction: column; max-height: 100%; }
+    .kanban-header { padding: 0 0 14px 0; font-weight: 600; font-size: 0.72rem; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 0.14em; display: flex; justify-content: space-between; align-items: center; }
+    .kanban-header span:last-child:not(:first-child) { color: var(--text-muted); }
+    .kanban-cards { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px; border: 1px solid transparent; transition: 0.15s; }
+    .kanban-cards.drag-over { border-color: var(--border-strong); background: rgba(255,255,255,0.02); }
+
+    .kanban-card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border-color); padding: 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; position: relative; }
+    .kanban-card:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+    .kanban-card-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; color: var(--accent); }
+    .kanban-card-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+
+    /* Filtros do Catálogo */
+    .catalog-filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .catalog-filters input, .catalog-filters select { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 9px 12px; border-radius: var(--radius); font-size: 0.85rem; outline: none; }
+    .catalog-filters input:focus, .catalog-filters select:focus { border-color: var(--accent-gold); }
+
+    /* Listas (catálogo, tarefas, demos, aprendizados) */
+    .splice-list { display: flex; flex-direction: column; gap: 0; flex: 1; overflow-y: auto; border-top: 1px solid var(--border-color); }
+    .splice-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: transparent; border-bottom: 1px solid var(--border-color); transition: background 0.15s; cursor: pointer; }
+    .splice-row:hover { background: var(--bg-card); }
+
+    .row-info { display: flex; align-items: center; gap: 16px; width: 30%; }
+    .row-cover { width: 44px; height: 44px; border-radius: var(--radius); background: #161616; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-color); }
+    .row-title { font-weight: 600; font-size: 0.95rem; color: var(--accent); margin-bottom: 2px; }
+    .row-sub { font-size: 0.75rem; color: var(--text-muted); }
+
+    .row-tech { display: flex; gap: 30px; width: 40%; justify-content: center; }
+    .tech-item { display: flex; flex-direction: column; align-items: center; }
+    .tech-label { font-size: 9px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.12em; }
+    .tech-val { color: var(--accent); font-size: 0.85rem; font-weight: 500; }
+
+    .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; width: 30%; }
+
+    .badge { padding: 4px 9px; border-radius: var(--radius); font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+    .badge-outline { background: transparent; border: 1px solid var(--border-strong); color: var(--text-muted); }
+
+    /* Painéis / Cadastros */
+    .management-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .panel-box { background: transparent; display: flex; flex-direction: column; gap: 14px; }
+    .panel-box h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent-gold); font-weight: 600; }
+    .panel-item-list { display: flex; flex-direction: column; gap: 4px; max-height: 250px; overflow-y: auto; }
+    .panel-item { background: var(--bg-card); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: var(--radius); display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; }
+
+    /* Planejamento / Sets */
+    .matutando-container { display: flex; gap: 24px; height: calc(100% - 70px); }
+    .drawer { width: 300px; background: transparent; display: flex; flex-direction: column; }
+    .drawer h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent-gold); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+    .drawer-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+
+    .scenarios-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; overflow-y: auto; align-content: start; }
+    .scenario-card { background: rgba(12,12,12,0.92); border-radius: var(--radius); border: 1px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; gap: 14px; transition: border-color 0.15s; }
+    .scenario-card:hover { border-color: var(--border-strong); }
+    .scenario-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .scenario-title { font-family: var(--font-display); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 1.1rem; letter-spacing: -0.5px; color: var(--accent); margin-bottom: 6px; }
+    .scenario-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .scenario-cover { width: 100%; height: 150px; border-radius: var(--radius); object-fit: cover; background-color: #161616; border: 1px solid var(--border-color); filter: contrast(110%); }
+    .scenario-dropzone { min-height: 90px; background: var(--bg-dark); border: 1px dashed var(--border-strong); border-radius: var(--radius); padding: 8px; display: flex; flex-direction: column; gap: 4px; transition: 0.15s; }
+    .scenario-dropzone.drag-over { border-color: var(--accent); background: rgba(255,255,255,0.03); }
+
+    .track-mini { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 9px 10px; font-size: 0.8rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; cursor: grab; transition: border-color 0.15s; }
+    .track-mini:hover { border-color: var(--border-strong); }
+    .track-mini.drag-target-top { border-top: 2px solid var(--accent-red) !important; }
+    .track-mini.drag-target-bottom { border-bottom: 2px solid var(--accent-red) !important; }
+    .kanban-card.drag-target-top { box-shadow: inset 0 2px 0 var(--accent-red); }
+    .kanban-card.drag-target-bottom { box-shadow: inset 0 -2px 0 var(--accent-red); }
+
+    /* Painel Hoje */
+    .hoje-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; overflow-y: auto; align-content: start; }
+    .hoje-panel { gap: 10px; }
+    .hoje-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 4px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+    .hoje-item:last-child { border-bottom: none; }
+    .hoje-item:hover { background: var(--bg-hover); }
+    .hoje-big { font-family: var(--font-display); font-size: 2.2rem; font-weight: 900; font-style: italic; color: var(--accent); line-height: 1; }
+    .hoje-empty { color: var(--text-muted); font-size: 0.85rem; }
+
+    /* Modais */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(6px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border-color); width: 700px; max-width: 95%; padding: 32px; display: flex; flex-direction: column; gap: 18px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.8); }
+    .modal h3 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.5px; color: var(--accent); margin-bottom: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+
+    .form-group { display: flex; flex-direction: column; gap: 7px; }
+    .form-group label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); font-weight: 600; }
+    .form-group input, .form-group select, .form-group textarea, .panel-box input, .panel-box select { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 12px; border-radius: var(--radius); font-size: 0.9rem; transition: border 0.15s; outline: none; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .panel-box input:focus, .panel-box select:focus { border-color: var(--accent-gold); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 18px; border-top: 1px solid var(--border-color); }
+    .btn-secondary { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 9px 16px; border-radius: var(--radius); cursor: pointer; font-weight: 600; }
+    .btn-secondary:hover { color: var(--accent); border-color: var(--accent); }
+    .btn-danger { background: transparent; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); padding: 9px 16px; border-radius: var(--radius); cursor: pointer; font-weight: 600; }
+    .btn-danger:hover { background: var(--accent-red); border-color: var(--accent-red); color: #fff; }
+
+    input[type="color"] { padding: 0; width: 100%; height: 38px; cursor: pointer; }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+    input[type="color"]::-webkit-color-swatch { border-radius: var(--radius); border: none; }
+    select[multiple] option:checked { background: #2a2a2a linear-gradient(0deg, #2a2a2a, #2a2a2a); color: #fff; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #262626; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    /* Player fixo */
+    .player-fixo { height: 74px; width: 100vw; background: #080808; border-top: 1px solid var(--border-color); color: var(--accent); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 900; flex-shrink: 0; gap: 20px; }
+    .player-info-meta { display: flex; align-items: center; gap: 12px; min-width: 280px; max-width: 350px; }
+    .player-cover-thumb { width: 44px; height: 44px; border-radius: var(--radius); background: #161616; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-color); }
+    #nome-faixa-atual { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #estrutura-faixa-atual { font-size: 0.72rem; color: var(--text-muted); }
+
+    .player-center-controls { display: flex; flex-direction: column; align-items: center; flex-grow: 1; max-width: 700px; gap: 4px; }
+    .player-buttons { display: flex; align-items: center; gap: 16px; }
+    .btn-player-main { background: var(--accent); color: #000; border: none; width: 34px; height: 34px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; transition: background 0.15s, color 0.15s; }
+    .btn-player-main:hover { background: var(--accent-red); color: #fff; }
+    .btn-player-skip { background: transparent; color: var(--text-muted); border: none; cursor: pointer; font-size: 15px; }
+    .btn-player-skip:hover { color: var(--accent); }
+
+    .player-timeline-box { display: flex; align-items: center; gap: 10px; width: 100%; font-size: 0.72rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+    #timeline { flex-grow: 1; -webkit-appearance: none; appearance: none; background: #262626; height: 3px; outline: none; cursor: pointer; accent-color: var(--accent-red); }
+    #timeline::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; background: var(--accent); cursor: pointer; }
+    #timeline:hover::-webkit-slider-thumb { background: var(--accent-red); }
+
+    .mini-play-btn { background: transparent; border: 1px solid var(--border-strong); color: var(--accent); width: 28px; height: 28px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; transition: 0.15s; flex-shrink: 0; }
+    .mini-play-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+  <div class="app-wrapper">
+    <div class="app-body">
+      <sidebar>
+        <h1>matutando</h1>
+        <span class="brand-sub">gestão de estúdio</span>
+        <nav>
+          <button class="active" onclick="switchView('hoje', this)">Hoje</button>
+          <button onclick="switchView('mesa', this)">Mesa de Trabalho</button>
+          <button onclick="switchView('tarefas', this)">Tarefas Pendentes</button>
+          <button onclick="switchView('demos', this)">Envios de Demo</button>
+          <button onclick="switchView('aprendizados', this)">Aprendizados</button>
+          <button onclick="switchView('catalogo', this)">Catálogo</button>
+          <button onclick="switchView('matutando', this)">Planejamento</button>
+          <button onclick="switchView('releases', this)">Releases</button>
+          <button onclick="switchView('sets', this)">Sets</button>
+          <button onclick="switchView('projetos', this)" style="margin-top: 20px;">Configurações</button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="btn-action" onclick="exportData()">Fazer backup</button>
+          <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar backup</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+          <button class="btn-action" id="backupFolderBtn" style="font-size:0.72rem; padding:6px;" onclick="chooseBackupFolder()" title="O backup é salvo direto nesta pasta, sem passar por Downloads"></button>
+          <div id="backupStatus" style="font-size:0.75rem; color:var(--text-muted); text-align:center;"></div>
+          <div id="storageStatus" style="font-size:0.7rem; color:var(--text-muted); text-align:center;"></div>
+        </div>
+      </sidebar>
+
+      <main>
+        <!-- VIEW: HOJE -->
+        <section id="view-hoje" class="view active">
+          <header>
+            <h2>Hoje</h2>
+            <span id="hojeDate" class="kanban-header" style="padding:0;"></span>
+          </header>
+          <div id="hojeGrid" class="hoje-grid"></div>
+        </section>
+
+        <!-- VIEW: MESA -->
+        <section id="view-mesa" class="view">
+          <header>
+            <h2>Mesa de Trabalho</h2>
+            <button class="btn-primary" onclick="openTrackModal()">Nova Faixa</button>
+          </header>
+          <div class="kanban-board" id="kanbanBoard"></div>
+        </section>
+
+        <!-- VIEW: TAREFAS -->
+        <section id="view-tarefas" class="view">
+          <header>
+            <h2>Tarefas Pendentes (Sprints)</h2>
+          </header>
+          <div id="globalTasksList" class="splice-list"></div>
+        </section>
+
+        <!-- VIEW: ENVIOS DE DEMO -->
+        <section id="view-demos" class="view">
+          <header>
+            <h2>Envios de Demo</h2>
+          </header>
+          <div id="demosList" class="splice-list"></div>
+        </section>
+
+        <!-- VIEW: APRENDIZADOS -->
+        <section id="view-aprendizados" class="view">
+          <header>
+            <h2>Aprendizados Sistematizados</h2>
+          </header>
+          <div id="globalAprendizadosList" class="splice-list"></div>
+        </section>
+
+        <!-- VIEW: CATÁLOGO -->
+        <section id="view-catalogo" class="view">
+          <header>
+            <h2>Catálogo de Faixas</h2>
+            <button class="btn-primary" onclick="openTrackModal()">Nova Faixa</button>
+          </header>
+          
+          <div class="catalog-filters">
+            <input type="text" id="filterSearch" placeholder="Buscar por título..." oninput="renderCatalogo()" style="flex: 2; min-width: 200px;">
+            <select id="filterProject" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todos os Projetos</option></select>
+            <select id="filterStatus" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todos os Estados</option></select>
+            <select id="filterLabel" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todas as Gravadoras</option></select>
+          </div>
+
+          <div id="catalogoList" class="splice-list"></div>
+        </section>
+
+        <!-- VIEW: CONFIGURAÇÕES -->
+        <section id="view-projetos" class="view">
+          <header>
+            <h2>Configurações Base</h2>
+          </header>
+          <div class="management-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 24px;">
+            <div class="panel-box">
+              <h3>Projetos (Marcas)</h3>
+              <div style="display:flex; gap:8px;">
+                <input type="text" id="newProjectInput" placeholder="Ex: Seu projeto / alias" style="flex:1;">
+                <button class="btn-primary" onclick="addListOption('projects', 'newProjectInput')">Add</button>
+              </div>
+              <div id="projectList" class="panel-item-list"></div>
+            </div>
+            <div class="panel-box">
+              <h3>Colaboradores</h3>
+              <div style="display:flex; gap:8px;">
+                <input type="text" id="newCollabInput" placeholder="Ex: Nome do colaborador" style="flex:1;">
+                <button class="btn-primary" onclick="addListOption('collaborators', 'newCollabInput')">Add</button>
+              </div>
+              <div id="collabList" class="panel-item-list"></div>
+            </div>
+            <div class="panel-box">
+              <h3>Gravadoras</h3>
+              <div style="display:flex; gap:8px;">
+                <input type="text" id="newLabelInput" placeholder="Ex: Nome da gravadora" style="flex:1;">
+                <button class="btn-primary" onclick="addListOption('labels', 'newLabelInput')">Add</button>
+              </div>
+              <div id="labelList" class="panel-item-list"></div>
+            </div>
+            <div class="panel-box">
+              <h3>Gêneros</h3>
+              <div style="display:flex; gap:8px;">
+                <input type="text" id="newGenreInput" placeholder="Ex: Deep Tech" style="flex:1;">
+                <button class="btn-primary" onclick="addListOption('genres', 'newGenreInput')">Add</button>
+              </div>
+              <div id="genreList" class="panel-item-list"></div>
+            </div>
+          </div>
+
+          <!-- GESTÃO DE TAGS -->
+          <div class="panel-box" style="background:var(--bg-card); border:1px solid var(--border-color); padding:20px; border-radius: var(--radius); margin-bottom: 24px;">
+            <h3>Tags Globais (Músicas e Releases)</h3>
+            <div style="display:flex; gap:8px; margin-top: 10px;">
+              <input type="text" id="newTagInput" placeholder="Ex: Analógico, Dub, Live" style="flex:1;">
+              <button class="btn-primary" onclick="addListOption('tags', 'newTagInput')">Adicionar Tag</button>
+            </div>
+            <div id="tagList" class="panel-item-list" style="margin-top: 16px;"></div>
+          </div>
+
+          <!-- BIBLIOTECA DE ÁUDIOS -->
+          <div class="panel-box" style="background:var(--bg-card); border:1px solid var(--border-color); padding:20px; border-radius: var(--radius); margin-bottom: 24px;">
+            <h3>Biblioteca de Áudios (Músicas)</h3>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+              <input type="text" id="newAudioName" placeholder="Título / Nome do Áudio" style="flex:1; min-width:200px;">
+              <input type="file" id="audioLibFile" accept="audio/*" onchange="handleAudioFileSelection(event)" style="padding:6px; background:var(--bg-dark); border:1px solid var(--border-color); border-radius: var(--radius); color:var(--text-main);">
+              <input type="text" id="newAudioUrl" placeholder="Ou URL do áudio (.mp3, .wav)..." style="flex:2; min-width:250px;">
+              <button class="btn-primary" onclick="addAudioToLibrary()">Adicionar à Biblioteca</button>
+            </div>
+            <div id="audioLibraryList" class="panel-item-list" style="margin-top: 16px;"></div>
+          </div>
+
+          <!-- BIBLIOTECA DE CAPAS -->
+          <div class="panel-box" style="background:var(--bg-card); border:1px solid var(--border-color); padding:20px; border-radius: var(--radius);">
+            <h3>Biblioteca de Capas (Imagens)</h3>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+              <input type="text" id="newCoverName" placeholder="Título / Nome da Capa" style="flex:1; min-width:200px;">
+              <input type="file" id="coverLibFile" accept="image/*" onchange="handleCoverLibUpload(event)" style="padding:6px; background:var(--bg-dark); border:1px solid var(--border-color); border-radius: var(--radius); color:var(--text-main);">
+              <input type="text" id="newCoverUrl" placeholder="Ou URL da imagem..." style="flex:2; min-width:250px;">
+              <button class="btn-primary" onclick="addCoverToLibrary()">Adicionar à Biblioteca</button>
+            </div>
+            <div id="coverLibraryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; max-height: 250px; overflow-y: auto;"></div>
+          </div>
+        </section>
+
+        <!-- VIEW: MATUTANDO -->
+        <section id="view-matutando" class="view">
+          <header>
+            <h2>Planejamento</h2>
+            <button class="btn-primary" onclick="openScenarioModal()">Novo Cenário</button>
+          </header>
+          <div class="matutando-container">
+            <div class="drawer">
+              <h3>Faixas Livres <span id="availableCount" style="color: #fff; font-weight: 600;">0</span></h3>
+              <div id="drawerList" class="drawer-list" ondragover="allowDrop(event)" ondrop="dropToDrawer(event)"></div>
+            </div>
+            <div id="scenariosGrid" class="scenarios-grid"></div>
+          </div>
+        </section>
+
+        <!-- VIEW: RELEASES -->
+        <section id="view-releases" class="view">
+          <header>
+            <h2>Releases Confirmados</h2>
+          </header>
+          <div id="releasesGrid" class="scenarios-grid"></div>
+        </section>
+
+        <!-- VIEW: SETS -->
+        <section id="view-sets" class="view">
+          <header>
+            <h2>Sets & Performances</h2>
+            <button class="btn-primary" onclick="openSetModal()">Novo Set</button>
+          </header>
+          <div class="matutando-container">
+            <div class="drawer">
+              <h3>Catálogo Geral <span id="setsTrackCount" style="color: #fff; font-weight: 600;">0</span></h3>
+              <div id="setsDrawerList" class="drawer-list"></div>
+            </div>
+            <div id="setsGrid" class="scenarios-grid"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="backupToast" role="status" style="display:none; position:fixed; right:24px; bottom:96px; z-index:950; gap:12px; align-items:center; background:var(--bg-card); border:1px solid var(--accent-red); padding:12px 16px; box-shadow:0 12px 30px rgba(0,0,0,0.7);">
+      <span id="backupToastText" style="font-size:0.85rem;"></span>
+      <button class="btn-primary" onclick="exportData()">Fazer backup agora</button>
+      <button class="btn-secondary" onclick="hideBackupToast()">Depois</button>
+    </div>
+
+    <!-- PLAYER GLOBAL FIXO NO RODAPÉ -->
+    <div id="player-rodape" class="player-fixo">
+        <div class="player-info-meta">
+            <img id="player-thumb" src="" class="player-cover-thumb" style="display:none;">
+            <div style="overflow:hidden;">
+                <h4 id="nome-faixa-atual">Nenhuma faixa selecionada</h4>
+                <span id="estrutura-faixa-atual">Selecione uma faixa para tocar</span>
+            </div>
+        </div>
+
+        <div class="player-center-controls">
+            <div class="player-buttons">
+                <button class="btn-player-skip" onclick="playPreviousInQueue()" title="Anterior">⏮</button>
+                <button id="btn-play-pause" class="btn-player-main" onclick="togglePlayPause()">▶</button>
+                <button class="btn-player-skip" onclick="playNextInQueue()" title="Próxima">⏭</button>
+            </div>
+            <div class="player-timeline-box">
+                <span id="time-current">00:00</span>
+                <input type="range" id="timeline" min="0" value="0" step="0.1">
+                <span id="time-total">00:00</span>
+            </div>
+        </div>
+        <div style="min-width: 200px;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: FAIXA -->
+  <div id="trackModal" class="modal-overlay">
+    <div class="modal">
+      <h3 id="trackModalTitle">Faixa</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Título</label>
+          <input type="text" id="trackTitle" placeholder="Obrigatório">
+        </div>
+        <div class="form-group">
+          <label>Projeto / Alias</label>
+          <select id="trackProject"></select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Colaboradores (Segure CTRL para vários)</label>
+          <select id="trackCollabs" multiple style="height: 80px;"></select>
+        </div>
+        <div class="form-group">
+          <label>Gravadora Alvo</label>
+          <select id="trackLabel"></select>
+          <label style="display:flex; align-items:center; gap:8px; margin-top:8px; text-transform:none; font-size:0.8rem; cursor:pointer;">
+            <input type="checkbox" id="trackLabelConfirmed" style="width:auto;"> Confirmada
+          </label>
+        </div>
+      </div>
+
+      <div class="form-row-3">
+        <div class="form-group"><label>BPM</label><input type="number" id="trackBpm" class="font-mono"></div>
+        <div class="form-group"><label>Key</label><input type="text" id="trackKey" class="font-mono"></div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="trackStatus">
+            <option value="Ideia">Ideia</option><option value="Demo">Demo</option>
+            <option value="Mixagem">Mixagem</option><option value="Masterização">Masterização</option>
+            <option value="Assinada">Assinada</option><option value="Lançada">Lançada</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- TAGS DA FAIXA -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Gênero</label>
+          <select id="trackGenre"></select>
+        </div>
+        <div class="form-group">
+          <label>Tags (Segure CTRL para selecionar várias)</label>
+          <select id="trackTags" multiple style="height: 70px;"></select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+        <label>Tarefas e Prazos (Sprints)</label>
+        <div style="display:flex; gap:8px; margin-bottom: 10px;">
+           <input type="text" id="newTaskDesc" placeholder="Ex: Mixagem multicanal 5.1" style="flex:1;">
+           <input type="date" id="newTaskDate" style="width:140px;">
+           <button type="button" class="btn-primary" onclick="addModalTask()">Add</button>
+        </div>
+        <div id="modalTasksContainer" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;"></div>
+      </div>
+
+      <!-- APRENDIZADOS DA FAIXA -->
+      <div class="form-group" style="margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+        <label>Aprendizados & Insights Registrados</label>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom: 10px;">
+           <input type="text" id="newLearningDesc" placeholder="Ex: Compilar kick e bass abaixo de 100Hz com sidechain agressivo">
+           <div style="display:flex; gap:8px;">
+             <input type="date" id="newLearningDate" style="width:140px;">
+             <select id="newLearningTags" multiple style="flex:1; height:40px;" title="Selecione as tags do aprendizado"></select>
+             <button type="button" class="btn-primary" onclick="addModalLearning()">Add Aprendizado</button>
+           </div>
+        </div>
+        <div id="modalLearningsContainer" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;"></div>
+      </div>
+
+      <!-- ENVIOS PARA GRAVADORAS -->
+      <div class="form-group" style="margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+        <label>Envios para Gravadoras</label>
+        <div style="display:flex; gap:8px; margin-bottom: 10px;">
+          <select id="newSubmissionLabel" style="flex:1;"></select>
+          <input type="date" id="newSubmissionDate" style="width:140px;" title="Data do envio (padrão: hoje)">
+          <button type="button" class="btn-primary" onclick="addModalSubmission()">Registrar Envio</button>
+        </div>
+        <div id="modalSubmissionsContainer" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;"></div>
+      </div>
+
+      <!-- HISTÓRICO DE VERSÕES DE ÁUDIO -->
+      <div class="form-group" style="margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+        <label>Histórico de Versões de Áudio (Exclusivo da Edição)</label>
+        <div style="display:flex; gap:8px; margin-bottom: 10px;">
+          <select id="trackAudioLibrarySelect" style="flex:1;">
+            <option value="">-- Selecionar da Biblioteca de Áudios --</option>
+          </select>
+          <button type="button" class="btn-primary" onclick="addAudioVersionToTrack()">Adicionar Versão</button>
+        </div>
+        <input type="hidden" id="trackAudio">
+        <div id="trackAudioHistoryList" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;"></div>
+
+        <!-- VERSÃO EM FOCO: forma de onda, A/B e comentários com tempo -->
+        <div id="versionPanel" style="display:none; flex-direction:column; gap:8px; margin-top:10px; background:var(--bg-dark); border:1px solid var(--border-color); border-radius: var(--radius); padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+            <strong id="versionPanelName" style="color:#fff; font-size:0.9rem;"></strong>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button type="button" class="btn-action" style="padding:4px 10px;" onclick="playVersionAt(focusedVersionKey, 0)">▶ Ouvir</button>
+              <select id="abCompareSelect" style="width:auto; padding:4px 6px; font-size:0.8rem;" title="Versão B do A/B"></select>
+              <button type="button" class="btn-action" style="padding:4px 10px;" onclick="toggleAB()" title="Troca para a outra versão no mesmo ponto da música">A/B ⇄</button>
+            </div>
+          </div>
+          <canvas id="waveform" style="width:100%; height:64px; cursor:pointer; display:block;" onclick="seekWaveform(event)" title="Clique para ouvir a partir deste ponto"></canvas>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="newCommentText" placeholder="Comentário neste ponto (ex: kick embolando com o baixo)" style="flex:1;" onkeydown="if(event.key === 'Enter') addVersionComment()">
+            <button type="button" class="btn-primary" onclick="addVersionComment()">Comentar em <span id="commentTimeLabel" class="font-mono">00:00</span></button>
+          </div>
+          <div id="versionCommentsList" style="display:flex; flex-direction:column; gap:4px; max-height:180px; overflow-y:auto;"></div>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top: 10px;">
+        <div class="form-group">
+          <label>Capa (Biblioteca ou URL)</label>
+          <select id="trackCoverLibrarySelect" onchange="selectCoverFromLibrary(this.value)" style="margin-bottom: 6px;">
+            <option value="">-- Selecionar da Biblioteca --</option>
+          </select>
+          <input type="text" id="trackCover" placeholder="Ou cole a URL da capa..." oninput="previewModalCover(this.value)">
+        </div>
+        <div class="form-group">
+          <label>URL de Streaming Externa (Opcional)</label>
+          <input type="text" id="trackAudioExternal" placeholder="Link para abrir no navegador ou URL direta .mp3/.wav" style="margin-top: 26px;">
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; margin-top: 10px;">
+        <img id="modalCoverPreview" src="" style="width: 48px; height: 48px; border-radius: var(--radius); object-fit: cover; display: none; background: #222;" alt="Preview">
+        <div class="form-group" style="flex-grow: 1;"><label>Marcador de Cor</label><input type="color" id="trackColor" style="height:38px;"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-danger" id="btnDeleteTrack" onclick="deleteTrack()" style="margin-right:auto;">Excluir</button>
+        <button class="btn-secondary" onclick="closeModal('trackModal')">Cancelar</button>
+        <button class="btn-primary" id="btnSaveTrack" onclick="saveTrack()">Salvar Faixa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CENÁRIO -->
+  <div id="scenarioModal" class="modal-overlay">
+    <div class="modal" style="width: 480px;">
+      <h3 id="scenarioModalTitle">Cenário de Lançamento</h3>
+
+      <div class="form-group">
+        <label>Título do Lançamento</label>
+        <input type="text" id="scenarioTitle" placeholder="Obrigatório">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Formato</label>
+          <select id="scenarioFormat">
+            <option value="Single">Single</option><option value="EP">EP</option>
+            <option value="Álbum">Álbum</option><option value="VA">VA Compilação</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Gravadora</label>
+          <select id="scenarioLabel"></select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Data de Lançamento</label>
+          <input type="date" id="scenarioReleaseDate" oninput="renderScenarioChecklist()">
+        </div>
+        <div class="form-group">
+          <label>Nº de Catálogo</label>
+          <input type="text" id="scenarioCatalog" class="font-mono" placeholder="Ex: ZEN012">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tags do Lançamento (Segure CTRL para várias)</label>
+        <select id="scenarioTags" multiple style="height: 70px;"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Capa do Lançamento (Biblioteca ou URL)</label>
+        <select id="scenarioCoverLibrarySelect" onchange="selectScenarioCoverFromLibrary(this.value)" style="margin-bottom: 6px;">
+          <option value="">-- Selecionar da Biblioteca --</option>
+        </select>
+        <input type="text" id="scenarioCover" placeholder="Ou cole a URL da capa..." oninput="previewScenarioCover(this.value)">
+      </div>
+      <img id="modalScenarioCoverPreview" src="" style="width: 48px; height: 48px; border-radius: var(--radius); object-fit: cover; display: none; background: #222;" alt="Preview">
+
+      <div class="form-group" style="margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+        <label>Checklist do Lançamento</label>
+        <div style="display:flex; gap:8px; margin-bottom: 10px;">
+          <input type="text" id="newChecklistDesc" placeholder="Ex: Enviar stems para o remixer" style="flex:1;">
+          <input type="date" id="newChecklistDate" style="width:140px;">
+          <button type="button" class="btn-primary" onclick="addChecklistItem()">Add</button>
+        </div>
+        <div id="scenarioChecklistContainer" style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;"></div>
+      </div>
+
+      <label style="display:flex; align-items:center; gap:10px; margin-top:10px; cursor:pointer; background:rgba(255,255,255,0.03); padding:12px; border-radius: var(--radius); border:1px solid var(--border-color);">
+        <input type="checkbox" id="scenarioConfirmed"> 
+        <span style="font-weight: 500; font-size: 0.9rem;">Release Oficial / Confirmado</span>
+      </label>
+
+      <div class="modal-actions">
+        <button class="btn-danger" id="btnDeleteScenario" onclick="deleteScenario()" style="margin-right:auto;">Excluir</button>
+        <button class="btn-secondary" onclick="closeModal('scenarioModal')">Cancelar</button>
+        <button class="btn-primary" onclick="saveScenario()">Salvar Cenário</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SET -->
+  <div id="setModal" class="modal-overlay">
+    <div class="modal" style="width: 500px;">
+      <h3 id="setModalTitle">Gerenciar Set</h3>
+
+      <div class="form-group">
+        <label>Título do Set / Evento</label>
+        <input type="text" id="setTitle" placeholder="Ex: Boiler Room Fortaleza">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Local</label>
+          <input type="text" id="setLocal" placeholder="Ex: Club XYZ / Festival ABC">
+        </div>
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="setData" style="width:100%;">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Link do Set</label>
+          <input type="text" id="setLink" placeholder="SoundCloud, YouTube, Drive...">
+        </div>
+        <div class="form-group">
+          <label>Duração do Slot (min)</label>
+          <input type="number" id="setSlot" min="0" step="5" class="font-mono" placeholder="Ex: 60">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Capa (Biblioteca ou URL)</label>
+        <select id="setCoverLibrarySelect" onchange="selectSetCoverFromLibrary(this.value)" style="margin-bottom: 6px;">
+          <option value="">-- Selecionar da Biblioteca --</option>
+        </select>
+        <input type="text" id="setCover" placeholder="Ou cole a URL da capa..." oninput="previewSetCover(this.value)">
+      </div>
+      <img id="modalSetCoverPreview" src="" style="width: 48px; height: 48px; border-radius: var(--radius); object-fit: cover; display: none; background: #222;" alt="Preview">
+
+      <div class="form-group">
+        <label>Anotações</label>
+        <textarea id="setNotes" placeholder="Notas sobre a tracklist, transições, ordem de mixagem..." style="height: 80px; resize: vertical;"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-danger" id="btnDeleteSet" onclick="deleteSet()" style="margin-right:auto;">Excluir</button>
+        <button class="btn-secondary" onclick="closeModal('setModal')">Cancelar</button>
+        <button class="btn-primary" onclick="saveSet()">Salvar Set</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="global-audio"></audio>
+
+  <script>
+    const STATES = ['Ideia', 'Demo', 'Mixagem', 'Masterização', 'Assinada', 'Lançada'];
+    const STATUS_COLORS = { 'Ideia': '#9ca3af', 'Demo': '#3b82f6', 'Mixagem': '#eab308', 'Masterização': '#a855f7', 'Assinada': '#ec4899', 'Lançada': '#10b981' };
+
+    const SUBMISSION_STATES = ['Enviada', 'Ouvida', 'Recusada', 'Aceita'];
+    const FOLLOW_UP_DAYS = 14;
+    // [item, days relative to the release date]
+    const RELEASE_CHECKLIST = [
+      ['Master final entregue', -42], ['Arte final aprovada', -35], ['Metadata e ISRC enviados', -28],
+      ['Lançamento agendado na distribuidora', -28], ['Pré-save no ar', -21], ['Material de divulgação pronto', -14],
+      ['Links pós-lançamento compartilhados', 1]
+    ];
+    const todayISO = () => new Date().toLocaleDateString('sv');
+    const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv'); };
+    // Returns HTML-safe text: dates come from imported backups too.
+    const formatDate = iso => iso ? String(iso).split('-').reverse().join('/').replace(/[&<>"']/g, '') : '';
+    // Camelot wheel: a fifth up (+7 semitones) is one step on the wheel; 8A = A minor, 8B = C major.
+    const NOTE_SEMITONES = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
+    function toCamelot(key) {
+      const text = String(key || '').trim();
+      const direct = text.match(/^(1[0-2]|[1-9])\s*([AB])$/i);
+      if (direct) return direct[1] + direct[2].toUpperCase();
+      const m = text.match(/^([A-Ga-g])\s*([#♯b♭]?)\s*(m|min|minor|maj|major|M)?$/);
+      if (!m) return '';
+      const semitone = (NOTE_SEMITONES[m[1].toUpperCase()] + (/[#♯]/.test(m[2]) ? 1 : m[2] ? -1 : 0) + 12) % 12;
+      const minor = !!m[3] && m[3] !== 'M' && /^m(in(or)?)?$/i.test(m[3]);
+      const n = (((minor ? 8 + 7 * (semitone - 9) : 8 + 7 * semitone) % 12) + 12) % 12 || 12;
+      return n + (minor ? 'A' : 'B');
+    }
+    const BPM_JUMP_LIMIT = 0.06; // ~6% is about as far as pitch can go before the change is audible
+    function transitionWarnings(from, to) {
+      const out = [];
+      const b1 = Number(from.bpm), b2 = Number(to.bpm);
+      if (b1 > 0 && b2 > 0 && Math.abs(b2 - b1) / b1 > BPM_JUMP_LIMIT) out.push(`BPM ${b1} → ${b2} (${b2 > b1 ? '+' : ''}${Math.round((b2 - b1) / b1 * 100)}%)`);
+      return out;
+    }
+    const toSeconds = d => { const [m, s] = String(d || '').split(':').map(Number); return Number.isFinite(m) && Number.isFinite(s) ? m * 60 + s : 0; };
+    const checklistDate = (item, releaseDate) => item.date || (releaseDate && item.offset != null ? addDays(releaseDate, item.offset) : '');
+
+    let state = {
+      projects: [], 
+      collaborators: [], 
+      labels: [], 
+      genres: [], 
+      tags: [],
+      tracks: [], 
+      scenarios: [],
+      sets: [],
+      coverLibrary: [],
+      audioLibrary: []
+    };
+
+    let selectedAudioFileCache = null;
+    let draftTrack = null;
+    let draftScenario = null;
+    let draftSet = null;
+
+    const audioElem = document.getElementById('global-audio');
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    const timeline = document.getElementById('timeline');
+    const timeCurrent = document.getElementById('time-current');
+    const timeTotal = document.getElementById('time-total');
+
+    let currentPlayingTrackId = null;
+    let currentAudioKey = null;
+    let currentQueue = [];
+    let queueContextName = "Catálogo Geral";
+
+
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const jsArg = value => escapeHtml(JSON.stringify(value));
+    const newId = prefix => prefix + crypto.randomUUID();
+    function safeUrl(value, kind = 'link') {
+      const text = String(value || '').trim();
+      if (/^https?:\/\//i.test(text)) return text;
+      if (kind === 'image' && (/^data:image\/(png|jpe?g|gif|webp|avif);base64,/i.test(text) || /^cover_[\w-]+$/.test(text))) return text;
+      if (kind === 'audio' && /^(blob:|data:audio\/)/i.test(text)) return text;
+      return '';
+    }
+    function normalizeState(input) {
+      if (!input || typeof input !== 'object' || !Array.isArray(input.tracks)) throw Error('O arquivo precisa conter uma lista de faixas.');
+      const data = JSON.parse(JSON.stringify(input));
+      const keys = ['projects','collaborators','labels','genres','tags','scenarios','sets','coverLibrary','audioLibrary'];
+      for (const key of keys) {
+        if (data[key] == null) data[key] = [];
+        if (!Array.isArray(data[key])) throw Error('Lista inválida: ' + key);
+      }
+      const strings = value => Array.isArray(value) ? value.map(String).filter(Boolean) : value ? [String(value)] : [];
+      for (const key of ['projects','collaborators','labels','genres','tags']) data[key] = strings(data[key]);
+      for (const key of ['tracks','scenarios','sets']) {
+        const ids = new Set();
+        for (const item of data[key]) {
+          if (!item || typeof item !== 'object' || Array.isArray(item)) throw Error('Registro inválido: ' + key);
+          item.id = String(item.id || newId(key + '_'));
+          if (!/^[\w-]+$/.test(item.id) || ids.has(item.id)) throw Error('Identificador inválido ou repetido: ' + key);
+          ids.add(item.id);
+          item.title = String(item.title || 'Sem título');
+          item.cover = safeUrl(item.cover, 'image');
+          item.tags = strings(item.tags);
+          if (key === 'tracks') {
+            item.collabs = strings(item.collabs);
+            item.status = STATES.includes(item.status) ? item.status : 'Ideia';
+            item.statusSince = /^\d{4}-\d{2}-\d{2}$/.test(item.statusSince || '') ? item.statusSince : '';
+            item.color = /^#[0-9a-f]{6}$/i.test(item.color || '') ? item.color : '#ffffff';
+            item.audioHistory = strings(item.audioHistory || (item.audio ? [item.audio] : []));
+            item.audio = String(item.audio || '');
+            item.audioExternal = safeUrl(item.audioExternal);
+            item.duration = /^\d+:\d{2}$/.test(item.duration || '') ? item.duration : '00:00';
+            for (const field of ['tasks','learnings']) {
+              if (item[field] != null && !Array.isArray(item[field])) throw Error('Lista inválida: ' + field);
+              item[field] = (item[field] || []).map(x => {
+                if (!x || typeof x !== 'object') throw Error('Anotação inválida');
+                return {...x, desc:String(x.desc || ''), date:String(x.date || ''), tags:strings(x.tags)};
+              });
+            }
+            for (const [field,list] of [['project','projects'],['label','labels'],['genre','genres']]) {
+              item[field] = String(item[field] || '');
+              if (item[field] && !data[list].includes(item[field])) data[list].push(item[field]);
+            }
+            for (const value of item.collabs) if (!data.collaborators.includes(value)) data.collaborators.push(value);
+            if (item.submissions != null && !Array.isArray(item.submissions)) throw Error('Lista inválida: submissions');
+            item.submissions = (item.submissions || []).map(x => {
+              if (!x || typeof x !== 'object') throw Error('Envio inválido');
+              const s = {label:String(x.label || ''), date:String(x.date || ''), followUp:String(x.followUp || ''), status:SUBMISSION_STATES.includes(x.status) ? x.status : 'Enviada'};
+              if (s.label && !data.labels.includes(s.label)) data.labels.push(s.label);
+              return s;
+            });
+          } else {
+            item.trackIds = [...new Set(strings(item.trackIds))];
+            if (key === 'scenarios') {
+              item.releaseDate = String(item.releaseDate || ''); item.catalog = String(item.catalog || '');
+              if (item.checklist != null && !Array.isArray(item.checklist)) throw Error('Lista inválida: checklist');
+              item.checklist = (item.checklist || []).map(x => {
+                if (!x || typeof x !== 'object') throw Error('Item de checklist inválido');
+                return {desc:String(x.desc || ''), done:!!x.done, date:String(x.date || ''), offset:Number.isFinite(x.offset) ? x.offset : null};
+              });
+            }
+            if (key === 'sets') {item.link = safeUrl(item.link); item.notes=String(item.notes || ''); item.data=String(item.data || ''); item.slotMinutes = Number(item.slotMinutes) > 0 ? Number(item.slotMinutes) : 0;}
+          }
+        }
+      }
+      const ids = new Set(data.tracks.map(t => t.id));
+      for (const item of [...data.scenarios,...data.sets]) item.trackIds = item.trackIds.filter(id => ids.has(id));
+      for (const item of data.coverLibrary) {if(!item || typeof item !== 'object') throw Error('Capa inválida'); item.name=String(item.name || 'Capa');item.url=safeUrl(item.url,'image');}
+      for (const item of data.audioLibrary) {
+        if(!item || typeof item !== 'object') throw Error('Áudio inválido');
+        item.name=String(item.name || 'Áudio'); item.url=safeUrl(item.url,'audio');
+        if (item.comments != null && !Array.isArray(item.comments)) throw Error('Lista inválida: comments');
+        item.comments = (item.comments || []).map(c => {
+          if (!c || typeof c !== 'object') throw Error('Comentário inválido');
+          return {t: Number.isFinite(Number(c.t)) && Number(c.t) >= 0 ? Number(c.t) : 0, text: String(c.text || ''), done: !!c.done};
+        });
+      }
+      return data;
+    }
+    let lastSavedState = JSON.stringify(state);
+    let storageBlocked = false;
+    function persistState(next) {
+      try { localStorage.setItem('STUDIO_DATA', JSON.stringify(next)); }
+      catch (err) { alert('Não foi possível salvar. O armazenamento pode estar cheio ou indisponível. Exporte um backup antes de fechar o app.'); throw err; }
+    }
+    async function restoreAudioLibrary(data) {
+      for (const item of data.audioLibrary) {
+        if (item.blobKey) {
+          item.url = '';
+          try { const blob = await getAudioBlobFromDB(item.blobKey); if (blob) item.url = URL.createObjectURL(blob); }
+          catch (err) { console.warn('Áudio local indisponível', err); }
+        } else if ((item.url || '').startsWith('blob:')) item.url = '';
+      }
+    }
+    function resetPlayer() {
+      audioElem.pause(); audioElem.removeAttribute('src'); audioElem.load();
+      currentPlayingTrackId = null; currentAudioKey = null; currentQueue = [];
+      timeline.value = 0; timeline.max = 0;
+      timeCurrent.textContent = timeTotal.textContent = '00:00';
+      btnPlayPause.textContent = '▶';
+      document.getElementById('nome-faixa-atual').textContent = 'Nenhuma faixa selecionada';
+      document.getElementById('estrutura-faixa-atual').textContent = 'Selecione uma faixa para tocar';
+      document.getElementById('player-thumb').style.display = 'none';
+    }
+
+    // --- INDEXEDDB HELPER PARA PERSISTÊNCIA DE ÁUDIO ---
+    function openAudioDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('StudioAudioDB', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if(!db.objectStoreNames.contains('audios')) db.createObjectStore('audios');
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function saveAudioBlobToDB(key, file) {
+      const db = await openAudioDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('audios', 'readwrite');
+        tx.objectStore('audios').put(file, key);
+        tx.oncomplete = () => {db.close(); resolve();};
+        tx.onerror = tx.onabort = () => {db.close(); reject(tx.error || Error('Falha ao salvar áudio'));};
+      });
+    }
+
+    async function getAudioBlobFromDB(key) {
+      const db = await openAudioDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('audios', 'readonly');
+        const req = tx.objectStore('audios').get(key);
+        tx.oncomplete = () => {db.close(); resolve(req.result);};
+        tx.onerror = tx.onabort = () => {db.close(); reject(tx.error);};
+      });
+    }
+
+    async function deleteAudioBlobFromDB(key) {
+      const db = await openAudioDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('audios', 'readwrite');
+        tx.objectStore('audios').delete(key);
+        tx.oncomplete = () => {db.close(); resolve();};
+        tx.onerror = tx.onabort = () => {db.close(); reject(tx.error);};
+      });
+    }
+
+    /* CAPAS E PREFERÊNCIAS NO INDEXEDDB */
+    // Covers used to live as base64 inside localStorage (~5 MB cap). They now live here, keyed by content hash,
+    // and the catalog keeps only "cover_<hash>" references. A separate DB avoids a version upgrade of StudioAudioDB.
+    function openAppDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('MatutandoDB', 1);
+        req.onupgradeneeded = e => { const db = e.target.result; for (const s of ['covers', 'settings']) if (!db.objectStoreNames.contains(s)) db.createObjectStore(s); };
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror = e => reject(e.target.error);
+      });
+    }
+    async function appDB(store, mode, action) {
+      const db = await openAppDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, mode), req = action(tx.objectStore(store));
+        tx.oncomplete = () => { db.close(); resolve(req?.result); };
+        tx.onerror = tx.onabort = () => { db.close(); reject(tx.error); };
+      });
+    }
+    const getSetting = key => appDB('settings', 'readonly', s => s.get(key));
+    const putSetting = (key, value) => appDB('settings', 'readwrite', s => s.put(value, key));
+
+    const coverUrls = new Map();
+    const isCoverRef = v => /^cover_[\w-]+$/.test(v || '');
+    const coverSrc = v => isCoverRef(v) ? (coverUrls.get(v) || '') : (v || '');
+    function dataUrlToBlob(dataUrl) {
+      const [head, body] = dataUrl.split(',');
+      return new Blob([Uint8Array.from(atob(body), c => c.charCodeAt(0))], {type: head.slice(5, head.indexOf(';'))});
+    }
+    // Covers are only shown up to ~600px wide, so a 1200px WebP is plenty and is ~5–10x smaller than a print-quality JPEG.
+    // Keeps the original when the browser cannot re-encode (no OffscreenCanvas) or when re-encoding would not shrink it.
+    async function shrinkCover(blob, max = 1200, quality = 0.85) {
+      try {
+        const img = await createImageBitmap(blob);
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = new OffscreenCanvas(Math.round(img.width * scale), Math.round(img.height * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        img.close();
+        const out = await canvas.convertToBlob({type: 'image/webp', quality});
+        return out.type === 'image/webp' && out.size < blob.size ? out : blob;
+      } catch { return blob; }
+    }
+    async function storeCover(dataUrl) {
+      const original = dataUrlToBlob(dataUrl);
+      // The key hashes the original, so uploading the same image again still dedupes.
+      const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', await original.arrayBuffer()))].map(b => b.toString(16).padStart(2, '0')).join('');
+      const key = 'cover_' + hash.slice(0, 32);
+      if (!coverUrls.has(key)) {
+        const blob = await shrinkCover(original);
+        await appDB('covers', 'readwrite', s => s.put(blob, key));
+        coverUrls.set(key, URL.createObjectURL(blob));
+      }
+      return key;
+    }
+    const coverHolders = data => [...data.coverLibrary.map(c => [c, 'url']), ...[...data.tracks, ...data.scenarios, ...data.sets].map(x => [x, 'cover'])];
+    // Moves every base64 cover into IndexedDB; a cover stays inline if storing it fails, so nothing is lost.
+    async function internCovers(data) {
+      let changed = false;
+      for (const [obj, field] of coverHolders(data)) {
+        if (!/^data:image\//.test(obj[field] || '')) continue;
+        try { obj[field] = await storeCover(obj[field]); changed = true; }
+        catch (err) { console.warn('Capa mantida no formato antigo', err); }
+      }
+      return changed;
+    }
+    async function restoreCovers(data) {
+      for (const [obj, field] of coverHolders(data)) {
+        const key = obj[field];
+        if (!isCoverRef(key) || coverUrls.has(key)) continue;
+        const blob = await appDB('covers', 'readonly', s => s.get(key)).catch(() => null);
+        if (blob) coverUrls.set(key, URL.createObjectURL(blob));
+      }
+    }
+
+    // Another tab saved: adopt its catalog so this tab's next save does not overwrite it.
+    window.addEventListener('storage', async e => {
+      if (e.key === 'STUDIO_LAST_BACKUP') return renderBackupStatus();
+      if (e.key !== 'STUDIO_DATA' || !e.newValue || storageBlocked) return;
+      try {
+        const next = normalizeState(JSON.parse(e.newValue));
+        await restoreAudioLibrary(next);
+        await restoreCovers(next);
+        state = next; lastSavedState = JSON.stringify(state);
+        setupCatalogFilters(); renderAll();
+      } catch (err) { console.warn('Não foi possível sincronizar com a outra aba', err); }
+    });
+
+    async function init() {
+      // Without this the browser may silently evict IndexedDB audio when disk is low.
+      globalThis.navigator?.storage?.persist?.().catch(() => {});
+      try {
+        const saved = localStorage.getItem('STUDIO_DATA');
+        if (saved) state = normalizeState(JSON.parse(saved));
+      } catch (err) {
+        storageBlocked = true;
+        alert('Os dados salvos não puderam ser carregados. Eles foram preservados. Importe um backup válido para continuar.');
+      }
+      await restoreAudioLibrary(state);
+      if (!storageBlocked) {
+        // One-time migrations, saved right away: covers out of localStorage, and a start date for each track's status.
+        let changed = await internCovers(state);
+        for (const t of state.tracks) if (!t.statusSince) { t.statusSince = todayISO(); changed = true; }
+        if (changed) try { persistState(state); } catch {}
+      }
+      await restoreCovers(state);
+      lastSavedState = JSON.stringify(state);
+      backupDir = await getSetting('backupDir').catch(() => null) || null;
+      setupCatalogFilters(); renderAll();
+      remindBackup();
+    }
+
+    // Only the visible view is rebuilt; switchView renders the next one when it is opened.
+    let activeView = 'hoje';
+    const VIEW_RENDERERS = {
+      hoje: () => renderHoje(), mesa: () => renderMesa(), tarefas: () => renderGlobalTasks(), demos: () => renderDemos(), aprendizados: () => renderGlobalAprendizados(),
+      catalogo: () => renderCatalogo(), projetos: () => { renderCadastrosBase(); renderAudioLibrary(); renderCoverLibrary(); },
+      matutando: () => renderMatutandoE_Releases(), releases: () => renderMatutandoE_Releases(), sets: () => renderSetsView()
+    };
+    function renderAll() {
+      VIEW_RENDERERS[activeView]();
+      renderBackupStatus();
+    }
+    function updatePlayIcons() {
+      document.querySelectorAll('[data-play-track]').forEach(b => { b.textContent = b.dataset.playTrack === currentPlayingTrackId && !audioElem.paused ? '⏸' : '▶'; });
+    }
+    const BACKUP_WARN_DAYS = 7;
+    function backupAgeDays(now = Date.now()) {
+      let last = null;
+      try { last = Number(localStorage.getItem('STUDIO_LAST_BACKUP')) || null; } catch {}
+      return last ? Math.floor((now - last) / 86400000) : null;
+    }
+    function renderBackupStatus() {
+      const el = document.getElementById('backupStatus');
+      const days = backupAgeDays();
+      el.textContent = days == null ? 'Último backup: sem registro' : days === 0 ? 'Último backup: hoje' : `Último backup: há ${days} dia${days > 1 ? 's' : ''}`;
+      el.style.color = state.tracks.length && (days == null || days > BACKUP_WARN_DAYS) ? '#ef4444' : 'var(--text-muted)';
+      const folderBtn = document.getElementById('backupFolderBtn');
+      folderBtn.style.display = canPickFolder() ? '' : 'none';
+      folderBtn.textContent = backupDir ? `Pasta de backup: ${backupDir.name}` : 'Escolher pasta de backup';
+      // shortcut: localStorage quota measured in characters (~5M in Chrome/Firefox); browsers do not expose the exact figure.
+      const used = lastSavedState.length, storage = document.getElementById('storageStatus');
+      storage.textContent = `Armazenamento: ${used < 1e6 ? Math.ceil(used / 1e3) + ' KB' : (used / 1e6).toFixed(1) + ' MB'} de ~${STORAGE_LIMIT_CHARS / 1e6} MB`;
+      storage.style.color = used > STORAGE_LIMIT_CHARS * 0.8 ? '#ef4444' : 'var(--text-muted)';
+    }
+    const STORAGE_LIMIT_CHARS = 5e6;
+    function saveData() {
+      if (storageBlocked) {alert('Importe um backup válido antes de salvar.'); throw Error('Armazenamento bloqueado');}
+      try {persistState(state); lastSavedState = JSON.stringify(state);}
+      catch (err) {state = JSON.parse(lastSavedState); renderAll(); throw err;}
+      setupCatalogFilters();
+    }
+
+    function switchView(viewName, btn = null) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById(`view-${viewName}`).classList.add('active');
+      if(btn) btn.classList.add('active');
+      activeView = viewName;
+      renderAll();
+    }
+
+    /* BIBLIOTECA DE ÁUDIOS */
+    function renderAudioLibrary() {
+      const container = document.getElementById('audioLibraryList');
+      if(!container) return;
+      container.innerHTML = '';
+      if(!state.audioLibrary || state.audioLibrary.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">Nenhum áudio cadastrado na biblioteca.</p>';
+        populateAudioSelects();
+        return;
+      }
+      state.audioLibrary.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'panel-item';
+        div.innerHTML = `
+          <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">
+            <strong>${escapeHtml(item.name)}</strong> <span style="color:var(--text-muted); font-size:0.75rem;">${item.url ? '(Disponível)' : '(Arquivo local ausente — reimporte o áudio)'}</span>
+          </div>
+          <button class="btn-action" style="padding:4px 8px; border:none; color:#ef4444;" onclick="removeAudioFromLibrary(${idx})">✕</button>
+        `;
+        container.appendChild(div);
+      });
+      populateAudioSelects();
+    }
+
+    function populateAudioSelects() {
+      const select = document.getElementById('trackAudioLibrarySelect');
+      if(!select) return;
+      select.innerHTML = '<option value="">-- Selecionar da Biblioteca de Áudios --</option>' +
+        (state.audioLibrary || []).map(a => `<option value="${escapeHtml(a.blobKey || a.url)}">${escapeHtml(a.name)}</option>`).join('');
+    }
+
+    async function addAudioToLibrary() {
+      const nameInput = document.getElementById('newAudioName');
+      const name = nameInput.value.trim();
+      const urlInput = document.getElementById('newAudioUrl').value.trim();
+
+      if(!name) return alert('Preencha o nome do áudio.');
+
+      if(selectedAudioFileCache) {
+        const blobKey = newId('audio_');
+        try {await saveAudioBlobToDB(blobKey, selectedAudioFileCache);} catch (err) {alert('Não foi possível armazenar o áudio. Tente novamente ou exporte um backup.'); return;}
+        const blobUrl = URL.createObjectURL(selectedAudioFileCache);
+        
+        state.audioLibrary.push({ name, blobKey, url: blobUrl });
+        selectedAudioFileCache = null;
+      } else if(urlInput) {
+        if (!safeUrl(urlInput, 'audio')) return alert('Informe uma URL válida de áudio.');
+        state.audioLibrary.push({ name, url: urlInput });
+      } else {
+        return alert('Selecione um arquivo de áudio local ou informe uma URL.');
+      }
+
+      nameInput.value = '';
+      document.getElementById('newAudioUrl').value = '';
+      document.getElementById('audioLibFile').value = '';
+      saveData();
+      renderAudioLibrary();
+    }
+
+    function handleAudioFileSelection(event) {
+      const file = event.target.files[0];
+      if(!file) {selectedAudioFileCache = null; return;}
+      selectedAudioFileCache = file;
+      document.getElementById('newAudioName').value = document.getElementById('newAudioName').value || file.name;
+      document.getElementById('newAudioUrl').value = '';
+      document.getElementById('newAudioUrl').placeholder = 'Arquivo selecionado: ' + file.name;
+    }
+
+    function removeAudioFromLibrary(idx) {
+      const item = state.audioLibrary[idx]; if (!item) return;
+      const keys = [item.blobKey, item.url].filter(Boolean);
+      if (state.tracks.some(t => keys.includes(t.audio) || (t.audioHistory || []).some(k => keys.includes(k)))) return alert('Este áudio está vinculado a uma faixa. Remova as versões vinculadas antes de excluí-lo.');
+      if (!confirm('Excluir "' + item.name + '" da biblioteca? O arquivo de áudio será apagado deste navegador.')) return;
+      state.audioLibrary.splice(idx, 1); saveData();
+      if ((item.url || '').startsWith('blob:')) URL.revokeObjectURL(item.url);
+      if (item.blobKey) deleteAudioBlobFromDB(item.blobKey).catch(err => console.warn('Não foi possível apagar o áudio local', err));
+      renderAudioLibrary();
+    }
+
+    function calculateTrackDuration(track) {
+      return new Promise(resolve => {
+        const src = trackAudioSource(track);
+        if (!src) return resolve(track.duration || '00:00');
+        const tempAudio = new Audio();
+        let finished = false;
+        const finish = duration => {
+          if (finished) return; finished = true; clearTimeout(timer);
+          tempAudio.onloadedmetadata = tempAudio.onerror = null;
+          tempAudio.removeAttribute('src'); tempAudio.load(); resolve(duration);
+        };
+        const timer = setTimeout(() => finish(track.duration || '00:00'), 4000);
+        tempAudio.onloadedmetadata = () => finish(Number.isFinite(tempAudio.duration) ? formatTime(tempAudio.duration) : (track.duration || '00:00'));
+        tempAudio.onerror = () => finish(track.duration || '00:00');
+        tempAudio.preload = 'metadata'; tempAudio.src = src;
+      });
+    }
+
+    function renderModalAudioHistory() {
+      const container = document.getElementById('trackAudioHistoryList');
+      if(!container) return;
+      container.innerHTML = '';
+
+      if (!draftTrack.audioHistory?.includes(focusedVersionKey)) focusedVersionKey = draftTrack.audio || draftTrack.audioHistory?.[0] || null;
+      renderVersionPanel();
+
+      if(!draftTrack.audioHistory || draftTrack.audioHistory.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">Nenhuma versão de áudio adicionada a esta faixa.</p>';
+        return;
+      }
+
+      draftTrack.audioHistory.forEach((audioKey, idx) => {
+        const item = libItem(audioKey);
+        const itemName = item ? item.name : 'Áudio Desconhecido';
+        const isCurrentActive = draftTrack.audio === audioKey;
+        const openComments = (item?.comments || []).filter(c => !c.done).length;
+
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; justify-content:space-between; background:var(--bg-dark); padding:8px 12px; border-radius: var(--radius); border:1px solid ' + (isCurrentActive ? 'var(--status-lancada)' : 'var(--border-color)') + '; align-items:center;' + (audioKey === focusedVersionKey ? ' box-shadow: inset 3px 0 0 #eab308;' : '');
+
+        row.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+            <span style="font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" title="Ver forma de onda e comentários" onclick="focusVersion(${jsArg(audioKey)})">${escapeHtml(itemName)}</span>
+            ${openComments ? `<span class="badge badge-outline" style="font-size:10px;">${openComments} coment.</span>` : ''}
+            ${isCurrentActive ? '<span class="badge" style="background:#10b98120; color:#10b981; font-size:10px;">Mais Recente (Ativa)</span>' : ''}
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${!isCurrentActive ? `<button type="button" class="btn-action" style="padding:2px 8px; font-size:11px;" onclick="setTrackActiveAudio(${jsArg(audioKey)})">Tornar Ativa</button>` : ''}
+            <button type="button" class="btn-action" style="padding:2px 6px; border:none; color:#ef4444;" onclick="removeModalAudioVersion(${idx})">✕</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function addAudioVersionToTrack() {
+      const select = document.getElementById('trackAudioLibrarySelect');
+      const val = select.value;
+      if(!val) return alert('Selecione um áudio da biblioteca.');
+
+      if(!draftTrack.audioHistory) draftTrack.audioHistory = [];
+      if(!draftTrack.audioHistory.includes(val)) {
+        draftTrack.audioHistory.push(val);
+      }
+
+      if(!draftTrack.audio || draftTrack.audioHistory.length === 1) {
+        draftTrack.audio = val;
+        document.getElementById('trackAudio').value = val;
+      }
+
+      select.value = '';
+      renderModalAudioHistory();
+    }
+
+    function setTrackActiveAudio(audioKey) {
+      draftTrack.audio = audioKey;
+      document.getElementById('trackAudio').value = audioKey;
+      renderModalAudioHistory();
+    }
+
+    function removeModalAudioVersion(idx) {
+      const removedKey = draftTrack.audioHistory.splice(idx, 1)[0];
+      if(draftTrack.audio === removedKey) {
+        draftTrack.audio = draftTrack.audioHistory.length > 0 ? draftTrack.audioHistory[draftTrack.audioHistory.length - 1] : '';
+        document.getElementById('trackAudio').value = draftTrack.audio;
+      }
+      renderModalAudioHistory();
+    }
+
+    /* VERSÃO EM FOCO: COMENTÁRIOS, FORMA DE ONDA E A/B */
+    let focusedVersionKey = null;
+    // Comments live on the audio library item: they belong to the file and are saved immediately, like DJ cue points.
+    const libItem = key => key ? state.audioLibrary.find(a => a.blobKey === key || a.url === key) : null;
+    // shortcut: waveform peaks are recomputed once per session (kept in memory, not saved) to spare localStorage.
+    const peaksCache = new Map(), peaksLoading = new Set();
+    const playingFocused = () => !!focusedVersionKey && currentAudioKey === focusedVersionKey && !!audioElem.src;
+
+    function focusVersion(key) { focusedVersionKey = key; renderModalAudioHistory(); }
+
+    function renderVersionPanel() {
+      const panel = document.getElementById('versionPanel');
+      const key = focusedVersionKey;
+      panel.style.display = key ? 'flex' : 'none';
+      if (!key) return;
+      document.getElementById('versionPanelName').textContent = libItem(key)?.name || 'Áudio desconhecido';
+      const sel = document.getElementById('abCompareSelect'), prev = sel.value;
+      const others = draftTrack.audioHistory.filter(k => k !== key);
+      sel.innerHTML = '<option value="">B: escolha a versão</option>' + others.map(k => `<option value="${escapeHtml(k)}">B: ${escapeHtml(libItem(k)?.name || 'Áudio desconhecido')}</option>`).join('');
+      sel.value = others.includes(prev) ? prev : (others[others.length - 1] || '');
+      renderVersionComments();
+      drawWaveform();
+      if (!peaksCache.has(key) && !peaksLoading.has(key)) {
+        peaksLoading.add(key);
+        loadPeaks(key).then(result => { peaksCache.set(key, result); peaksLoading.delete(key); if (focusedVersionKey === key) drawWaveform(); });
+      }
+    }
+
+    async function loadPeaks(key, buckets = 600) {
+      const url = getPlayableAudioUrl(key);
+      if (!url) return null;
+      let ctx;
+      try {
+        const bytes = await (await fetch(url)).arrayBuffer();
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const buffer = await ctx.decodeAudioData(bytes);
+        const data = buffer.getChannelData(0), step = Math.max(1, Math.floor(data.length / buckets));
+        const peaks = new Float32Array(buckets);
+        for (let i = 0; i < buckets; i++) {
+          let max = 0;
+          for (let j = i * step, end = Math.min(j + step, data.length); j < end; j++) { const v = Math.abs(data[j]); if (v > max) max = v; }
+          peaks[i] = max;
+        }
+        return {peaks, duration: buffer.duration};
+      } catch (err) {
+        console.warn('Forma de onda indisponível', err);
+        return null;
+      } finally { ctx?.close(); }
+    }
+
+    function drawWaveform() {
+      const canvas = document.getElementById('waveform');
+      const g = canvas.getContext?.('2d'), w = canvas.clientWidth, h = 64;
+      if (!g || !w) return;
+      const dpr = globalThis.devicePixelRatio || 1;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, w, h);
+      const wf = peaksCache.get(focusedVersionKey);
+      if (!wf) {
+        g.fillStyle = '#737373'; g.font = '12px sans-serif';
+        g.fillText(peaksCache.has(focusedVersionKey) ? 'Forma de onda indisponível (áudio ausente neste navegador ou link externo)' : 'Gerando forma de onda…', 8, 36);
+        return;
+      }
+      const top = Math.max(...wf.peaks) || 1, n = wf.peaks.length, barW = Math.max(1, w / n - 0.5);
+      const progress = playingFocused() && Number.isFinite(audioElem.duration) ? audioElem.currentTime / audioElem.duration : 0;
+      for (let i = 0; i < n; i++) {
+        const bar = Math.max(1, wf.peaks[i] / top * (h - 4));
+        g.fillStyle = i / n < progress ? '#10b981' : '#525252';
+        g.fillRect(i / n * w, (h - bar) / 2, barW, bar);
+      }
+      for (const c of libItem(focusedVersionKey)?.comments || []) {
+        g.fillStyle = c.done ? '#737373' : '#eab308';
+        g.fillRect(Math.min(w - 2, c.t / wf.duration * w), 0, 2, h);
+      }
+    }
+
+    function versionDuration() {
+      return peaksCache.get(focusedVersionKey)?.duration || (playingFocused() && Number.isFinite(audioElem.duration) ? audioElem.duration : 0);
+    }
+    function seekWaveform(e) {
+      const duration = versionDuration();
+      if (!duration) return playVersionAt(focusedVersionKey, 0);
+      const rect = e.currentTarget.getBoundingClientRect();
+      playVersionAt(focusedVersionKey, Math.max(0, (e.clientX - rect.left) / rect.width) * duration);
+    }
+    function playVersionAt(key, t = 0) {
+      if (!key) return;
+      if (currentPlayingTrackId === draftTrack.id && currentAudioKey === key && audioElem.src) {
+        audioElem.currentTime = t;
+        if (audioElem.paused) audioElem.play().catch(() => {});
+        return;
+      }
+      tocarFaixaById(draftTrack.id, key, t);
+    }
+    // A/B: jumps to the other version at the same second; the focus (waveform, comments) follows what is playing.
+    function toggleAB() {
+      const sel = document.getElementById('abCompareSelect'), a = focusedVersionKey, b = sel.value;
+      if (!b) return alert('Escolha a versão B para comparar.');
+      if (!(currentPlayingTrackId === draftTrack.id && playingFocused())) return playVersionAt(a, 0);
+      const t = audioElem.currentTime;
+      focusVersion(b);
+      document.getElementById('abCompareSelect').value = a;
+      playVersionAt(b, t);
+    }
+
+    function renderVersionComments() {
+      const list = document.getElementById('versionCommentsList');
+      const comments = libItem(focusedVersionKey)?.comments || [];
+      list.innerHTML = comments.length ? comments.map((c, idx) => `
+        <div style="display:flex; align-items:center; gap:8px; padding:4px 6px; border-radius: var(--radius); background:var(--bg-card);">
+          <input type="checkbox" ${c.done ? 'checked' : ''} onchange="toggleVersionComment(${idx})" style="width:auto;" title="Resolvido">
+          <button type="button" class="btn-action font-mono" style="padding:1px 6px; font-size:11px;" onclick="playVersionAt(focusedVersionKey, ${c.t})" title="Ouvir a partir daqui">${formatTime(c.t)}</button>
+          <span style="flex:1; font-size:0.85rem; ${c.done ? 'text-decoration:line-through; color:var(--text-muted);' : 'color:#fff;'}">${escapeHtml(c.text)}</span>
+          <button type="button" class="btn-action" style="padding:1px 6px; border:none; color:#ef4444;" onclick="removeVersionComment(${idx})">✕</button>
+        </div>`).join('')
+        : '<p style="color:var(--text-muted); font-size:0.8rem;">Sem comentários. Toque a versão e comente no ponto exato.</p>';
+      document.getElementById('commentTimeLabel').textContent = formatTime(playingFocused() ? audioElem.currentTime : 0);
+    }
+    function addVersionComment() {
+      const input = document.getElementById('newCommentText'), text = input.value.trim();
+      const item = libItem(focusedVersionKey);
+      if (!text) return;
+      if (!item) return alert('Esta versão não está na Biblioteca de Áudios.');
+      const t = playingFocused() ? Math.round(audioElem.currentTime * 10) / 10 : 0;
+      item.comments = [...(item.comments || []), {t, text, done: false}].sort((x, y) => x.t - y.t);
+      saveData();
+      input.value = '';
+      renderModalAudioHistory();
+    }
+    function toggleVersionComment(idx) {
+      const c = libItem(focusedVersionKey)?.comments?.[idx];
+      if (!c) return;
+      c.done = !c.done; saveData(); renderModalAudioHistory();
+    }
+    function removeVersionComment(idx) {
+      const item = libItem(focusedVersionKey);
+      if (!item?.comments?.[idx]) return;
+      item.comments.splice(idx, 1); saveData(); renderModalAudioHistory();
+    }
+
+    function getPlayableAudioUrl(audioKeyOrUrl) {
+      if (!audioKeyOrUrl) return '';
+      const found = state.audioLibrary.find(a => a.blobKey === audioKeyOrUrl || a.url === audioKeyOrUrl);
+      if (found) return safeUrl(found.url, 'audio');
+      if (String(audioKeyOrUrl).startsWith('audio_')) return '';
+      return safeUrl(audioKeyOrUrl, 'audio');
+    }
+    function trackAudioSource(track) {
+      return getPlayableAudioUrl(track.audio) || (/\.(mp3|wav|ogg|m4a|aac|flac|webm)(?:[?#]|$)/i.test(track.audioExternal || '') ? safeUrl(track.audioExternal) : '');
+    }
+
+    /* BIBLIOTECA DE CAPAS */
+    function renderCoverLibrary() {
+      const grid = document.getElementById('coverLibraryGrid');
+      if(!grid) return;
+      grid.innerHTML = '';
+      if(!state.coverLibrary || state.coverLibrary.length === 0) {
+        grid.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem; grid-column: 1/-1;">Nenhuma capa cadastrada na biblioteca.</p>';
+        populateCoverSelects();
+        return;
+      }
+      state.coverLibrary.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background:var(--bg-dark); border:1px solid var(--border-color); border-radius: var(--radius); padding:8px; display:flex; flex-direction:column; align-items:center; gap:6px; position:relative;';
+        card.innerHTML = `
+          <img src="${escapeHtml(coverSrc(item.url))}" style="width:100%; height:90px; object-fit:cover; border-radius: var(--radius);">
+          <span style="font-size:0.75rem; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${escapeHtml(item.name)}</span>
+          <button class="btn-action" style="padding:2px 6px; font-size:10px; border:none; color:#ef4444;" onclick="removeCoverFromLibrary(${idx})">Remover</button>
+        `;
+        grid.appendChild(card);
+      });
+      populateCoverSelects();
+    }
+
+    function populateCoverSelects() {
+      const tSelect = document.getElementById('trackCoverLibrarySelect');
+      const sSelect = document.getElementById('scenarioCoverLibrarySelect');
+      const setSelect = document.getElementById('setCoverLibrarySelect');
+      if(!tSelect || !sSelect || !setSelect) return;
+
+      const opts = '<option value="">-- Selecionar da Biblioteca --</option>' + 
+        (state.coverLibrary || []).map(c => `<option value="${escapeHtml(c.url)}">${escapeHtml(c.name)}</option>`).join('');
+      
+      tSelect.innerHTML = opts;
+      sSelect.innerHTML = opts;
+      setSelect.innerHTML = opts;
+    }
+
+    async function addCoverToLibrary() {
+      const name = document.getElementById('newCoverName').value.trim();
+      let url = document.getElementById('newCoverUrl').value.trim();
+      if(!name || !url) return alert('Preencha o nome e a URL da capa.');
+      if(!safeUrl(url, 'image')) return alert('Informe uma imagem ou URL válida.');
+      if (url.startsWith('data:image/')) {
+        try { url = await storeCover(url); } catch (err) { console.warn('Capa guardada no formato antigo', err); }
+      }
+      state.coverLibrary.push({ name, url });
+      document.getElementById('newCoverName').value = '';
+      document.getElementById('newCoverUrl').value = '';
+      document.getElementById('coverLibFile').value = '';
+      saveData();
+      renderCoverLibrary();
+    }
+
+    function handleCoverLibUpload(event) {
+      const file = event.target.files[0];
+      if(!file) return;
+      document.getElementById('newCoverName').value = document.getElementById('newCoverName').value || file.name;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('newCoverUrl').value = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeCoverFromLibrary(idx) {
+      state.coverLibrary.splice(idx, 1);
+      saveData();
+      renderCoverLibrary();
+    }
+
+    function selectCoverFromLibrary(url) {
+      if(!url) return;
+      document.getElementById('trackCover').value = url;
+      previewModalCover(url);
+      if(draftTrack) draftTrack.cover = url;
+    }
+
+    function selectScenarioCoverFromLibrary(url) {
+      if(!url) return;
+      document.getElementById('scenarioCover').value = url;
+      previewScenarioCover(url);
+      if(draftScenario) draftScenario.cover = url;
+    }
+
+    function selectSetCoverFromLibrary(url) {
+      if(!url) return;
+      document.getElementById('setCover').value = url;
+      previewSetCover(url);
+      if(draftSet) draftSet.cover = url;
+    }
+
+    function previewModalCover(url) {
+      const prev = document.getElementById('modalCoverPreview');
+      if(url) { prev.src = coverSrc(url); prev.style.display = 'block'; } else { prev.style.display = 'none'; }
+    }
+
+    function previewScenarioCover(url) {
+      const prev = document.getElementById('modalScenarioCoverPreview');
+      if(url) { prev.src = coverSrc(url); prev.style.display = 'block'; } else { prev.style.display = 'none'; }
+    }
+
+    function previewSetCover(url) {
+      const prev = document.getElementById('modalSetCoverPreview');
+      if(url) { prev.src = coverSrc(url); prev.style.display = 'block'; } else { prev.style.display = 'none'; }
+    }
+
+    /* REPRODUÇÃO & PLAYER */
+    function formatTime(secs) {
+      if(!Number.isFinite(secs) || secs < 0) return "00:00";
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function playTrackInQueue(trackId, queueList, contextName, event) {
+      if(event) event.stopPropagation();
+      currentQueue = queueList.filter(id => {const t = state.tracks.find(t => t.id === id); return t && trackAudioSource(t);});
+      queueContextName = contextName;
+      if (trackId === currentPlayingTrackId) return togglePlayPause();
+      tocarFaixaById(trackId);
+    }
+
+    // audioKey plays a specific version (A/B, waveform seek); the draft lets an unsaved track be auditioned from its modal.
+    function tocarFaixaById(trackId, audioKey = null, startAt = 0, retried = false) {
+      const track = state.tracks.find(t => t.id === trackId) || (draftTrack?.id === trackId ? draftTrack : null);
+      if(!track) return;
+
+      const audioSource = audioKey ? getPlayableAudioUrl(audioKey) : trackAudioSource(track);
+
+      if(!audioSource) {
+        // The file can be stored while its object URL is not ready yet (startup restore, sync from another tab): read it once from IndexedDB before warning.
+        const item = libItem(audioKey || track.audio);
+        if (item?.blobKey && !retried) {
+          getAudioBlobFromDB(item.blobKey).catch(() => null).then(blob => {
+            if (blob && !item.url) item.url = URL.createObjectURL(blob);
+            tocarFaixaById(trackId, audioKey, startAt, true);
+          });
+          return;
+        }
+        if (audioKey || (item && !safeUrl(track.audioExternal))) {
+          console.warn('Áudio indisponível', {faixa: track.title, chave: audioKey || track.audio, item});
+          return alert('Este áudio não está disponível neste navegador. Reimporte o arquivo na Biblioteca de Áudios.');
+        }
+        if (safeUrl(track.audioExternal)) {window.open(safeUrl(track.audioExternal), '_blank', 'noopener,noreferrer'); return;}
+        alert("Esta faixa não possui áudio ativo vinculado. Edite a faixa e defina uma versão ativa na aba de edições.");
+        return;
+      }
+
+      currentPlayingTrackId = track.id;
+      currentAudioKey = audioKey || track.audio;
+      timeline.value = 0; timeCurrent.textContent = '00:00';
+      audioElem.src = audioSource;
+      audioElem.load();
+      if (startAt > 0) audioElem.addEventListener('loadedmetadata', () => { audioElem.currentTime = Math.min(startAt, audioElem.duration || startAt); }, {once: true});
+
+      audioElem.play().then(() => {
+        btnPlayPause.textContent = '⏸';
+      }).catch(err => {
+        if (err.name === 'AbortError' || currentPlayingTrackId !== track.id) return;
+        console.error("Erro ao reproduzir áudio:", err);
+        alert("Não foi possível reproduzir este áudio. Certifique-se de que o arquivo foi cadastrado corretamente na biblioteca.");
+      });
+
+      document.getElementById('nome-faixa-atual').textContent = track.title;
+      const versionName = audioKey && audioKey !== track.audio ? ` • Versão: ${libItem(audioKey)?.name || '?'}` : '';
+      document.getElementById('estrutura-faixa-atual').textContent = `${track.project || 'Sem Projeto'} • Fila: ${queueContextName}${versionName}`;
+      
+      const thumb = document.getElementById('player-thumb');
+      if(track.cover) {
+        thumb.src = coverSrc(track.cover);
+        thumb.style.display = 'block';
+      } else {
+        thumb.style.display = 'none';
+      }
+
+      updatePlayIcons();
+    }
+
+    function playNextInQueue() {
+      currentQueue = currentQueue.filter(id => state.tracks.some(t => t.id === id && trackAudioSource(t)));
+      if(!currentPlayingTrackId || currentQueue.length === 0) {
+        const allIds = state.tracks.filter(t => trackAudioSource(t)).map(t => t.id);
+        if(allIds.length === 0) return;
+        currentQueue = allIds;
+        queueContextName = "Catálogo Geral";
+      }
+      const idx = currentQueue.indexOf(currentPlayingTrackId);
+      if(idx >= 0 && idx < currentQueue.length - 1) {
+        tocarFaixaById(currentQueue[idx + 1]);
+      } else if(currentQueue.length > 0) {
+        tocarFaixaById(currentQueue[0]);
+      }
+    }
+
+    function playPreviousInQueue() {
+      if(!currentPlayingTrackId || currentQueue.length === 0) return;
+      const idx = currentQueue.indexOf(currentPlayingTrackId);
+      if(idx > 0) {
+        tocarFaixaById(currentQueue[idx - 1]);
+      }
+    }
+
+    function togglePlayPause() {
+      if(!audioElem.src) return;
+      if(audioElem.paused) {
+        audioElem.play().catch(err => console.log(err));
+      } else {
+        audioElem.pause();
+      }
+    }
+
+    audioElem.addEventListener('play', () => { btnPlayPause.textContent = '⏸'; updatePlayIcons(); });
+    audioElem.addEventListener('pause', () => { btnPlayPause.textContent = '▶'; updatePlayIcons(); });
+    audioElem.addEventListener('ended', () => { playNextInQueue(); });
+    audioElem.addEventListener('loadedmetadata', () => { timeline.max = Number.isFinite(audioElem.duration) ? audioElem.duration : 0; timeTotal.textContent = formatTime(audioElem.duration); });
+    audioElem.addEventListener('timeupdate', () => {
+      timeline.value = audioElem.currentTime;
+      timeCurrent.textContent = formatTime(audioElem.currentTime);
+      if (playingFocused() && document.getElementById('trackModal').classList.contains('active')) {
+        document.getElementById('commentTimeLabel').textContent = formatTime(audioElem.currentTime);
+        drawWaveform();
+      }
+    });
+
+    timeline.addEventListener('input', () => {
+      if (Number.isFinite(audioElem.duration)) audioElem.currentTime = Math.min(Number(timeline.value), audioElem.duration);
+    });
+
+    /* PAINEL HOJE */
+    const STALL_DAYS = 30;
+    const daysBetween = (from, to) => Math.round((new Date(to + 'T00:00:00') - new Date(from + 'T00:00:00')) / 86400000);
+    const inDays = n => n === 0 ? 'hoje' : n === 1 ? 'amanhã' : `em ${n} dias`;
+    const goTo = view => switchView(view, document.querySelector(`nav button[onclick*="'${view}'"]`));
+    function hojePanel(title, count = null) {
+      const panel = document.createElement('div');
+      panel.className = 'scenario-card hoje-panel';
+      panel.innerHTML = `<div class="kanban-header" style="padding:0;"><span>${title}</span>${count != null ? `<span>${count}</span>` : ''}</div>`;
+      document.getElementById('hojeGrid').appendChild(panel);
+      return panel;
+    }
+    function hojeItem(panel, html, onclick) {
+      const row = document.createElement('div');
+      row.className = 'hoje-item'; row.innerHTML = html; row.onclick = onclick;
+      panel.appendChild(row);
+    }
+    function hojeEmpty(panel, text) {
+      const p = document.createElement('p');
+      p.className = 'hoje-empty'; p.textContent = text;
+      panel.appendChild(p);
+    }
+    function hojeTask(panel, t, today) {
+      hojeItem(panel, `<div><div style="font-weight:600;">${escapeHtml(t.desc)}</div><div class="row-sub">${t.scenarioId ? 'Release' : 'Faixa'}: ${escapeHtml(t.trackTitle)}</div></div>
+        <span class="font-mono" style="font-size:0.8rem; white-space:nowrap; color:${t.date < today ? '#ef4444' : 'var(--text-muted)'};">${t.date === today ? 'hoje' : formatDate(t.date)}</span>`,
+        () => t.scenarioId ? openScenarioModal(t.scenarioId) : openTrackModal(t.trackId));
+    }
+    function renderHoje() {
+      document.getElementById('hojeGrid').innerHTML = '';
+      const today = todayISO(), week = addDays(today, 7);
+      document.getElementById('hojeDate').textContent = new Date().toLocaleDateString('pt-BR', {weekday: 'long', day: 'numeric', month: 'long'});
+      const tasks = collectTasks().filter(t => t.date);
+      const due = tasks.filter(t => t.date <= today), soon = tasks.filter(t => t.date > today && t.date <= week);
+
+      const late = hojePanel('Atrasado e para hoje', due.length);
+      due.length ? due.forEach(t => hojeTask(late, t, today)) : hojeEmpty(late, 'Nada atrasado.');
+
+      const release = state.scenarios.filter(s => s.releaseDate && s.releaseDate >= today).sort((a, b) => a.releaseDate.localeCompare(b.releaseDate))[0];
+      const rel = hojePanel('Próximo lançamento');
+      if (release) {
+        const list = release.checklist || [], done = list.filter(i => i.done).length;
+        const next = list.filter(i => !i.done).map(i => ({...i, date: checklistDate(i, release.releaseDate)})).sort((a, b) => (a.date || '9').localeCompare(b.date || '9'))[0];
+        const days = daysBetween(today, release.releaseDate);
+        hojeItem(rel, `<div><div class="scenario-title">${escapeHtml(release.title)}</div>
+            <div class="row-sub">${escapeHtml(release.format)} • ${escapeHtml(release.label || 'Independente')} • ${formatDate(release.releaseDate)}</div>
+            <div class="row-sub" style="margin-top:6px;">${list.length ? `Checklist ${done}/${list.length}${next ? ' • próximo: ' + escapeHtml(next.desc) : ''}` : 'Sem checklist: abra o release e use o checklist padrão.'}</div></div>
+          <div style="text-align:right;"><div class="hoje-big">${days}</div><div class="row-sub">${days === 1 ? 'dia' : 'dias'}</div></div>`,
+          () => openScenarioModal(release.id));
+      } else hojeEmpty(rel, 'Nenhum lançamento com data. Defina a data de lançamento no cenário.');
+
+      const gig = state.sets.filter(s => s.data && s.data >= today).sort((a, b) => a.data.localeCompare(b.data))[0];
+      const set = hojePanel('Próximo set');
+      if (gig) {
+        const total = gig.trackIds.map(id => state.tracks.find(t => t.id === id)).filter(Boolean).reduce((n, t) => n + toSeconds(t.duration), 0);
+        hojeItem(set, `<div><div class="scenario-title">${escapeHtml(gig.title)}</div>
+            <div class="row-sub">📍 ${escapeHtml(gig.local || 'Local livre')} • ${formatDate(gig.data)} (${inDays(daysBetween(today, gig.data))})</div>
+            <div class="row-sub" style="margin-top:6px;">${gig.trackIds.length} faixas • ${formatTime(total)}${gig.slotMinutes > 0 ? ` de ${gig.slotMinutes} min de slot` : ''}</div></div>`,
+          () => goTo('sets'));
+      } else hojeEmpty(set, 'Nenhum set com data futura.');
+
+      const week7 = hojePanel('Próximos 7 dias', soon.length);
+      soon.length ? soon.forEach(t => hojeTask(week7, t, today)) : hojeEmpty(week7, 'Semana sem prazos.');
+
+      const waiting = state.tracks.flatMap(t => (t.submissions || []).filter(submissionOpen).map(s => ({...s, track: t}))).sort((a, b) => a.followUp.localeCompare(b.followUp));
+      const demos = hojePanel('Demos aguardando resposta', waiting.length);
+      waiting.forEach(w => hojeItem(demos, `<div><div style="font-weight:600;">${escapeHtml(w.track.title)} → ${escapeHtml(w.label)}</div><div class="row-sub">${escapeHtml(w.status)} em ${formatDate(w.date)}</div></div>
+        <span class="font-mono" style="font-size:0.8rem; white-space:nowrap; color:${w.followUp <= today ? '#ef4444' : 'var(--text-muted)'};">${w.followUp <= today ? 'cobrar' : 'cobrar ' + formatDate(w.followUp)}</span>`, () => goTo('demos')));
+      if (!waiting.length) hojeEmpty(demos, 'Nenhuma demo aguardando.');
+
+      const stalled = state.tracks.filter(t => !['Assinada', 'Lançada'].includes(t.status) && t.statusSince && daysBetween(t.statusSince, today) > STALL_DAYS)
+        .sort((a, b) => a.statusSince.localeCompare(b.statusSince));
+      const stall = hojePanel(`Paradas há mais de ${STALL_DAYS} dias`, stalled.length);
+      stalled.forEach(t => hojeItem(stall, `<div><div style="font-weight:600;">${escapeHtml(t.title)}</div><div class="row-sub">${escapeHtml(t.status)} desde ${formatDate(t.statusSince)}</div></div>
+        <span class="font-mono" style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap;">${daysBetween(t.statusSince, today)} dias</span>`, () => openTrackModal(t.id)));
+      if (!stalled.length) hojeEmpty(stall, 'Nenhuma faixa parada.');
+    }
+
+    /* MESA DE TRABALHO */
+    function renderMesa() {
+      const board = document.getElementById('kanbanBoard');
+      board.innerHTML = '';
+      STATES.forEach(st => {
+        const col = document.createElement('div');
+        col.className = 'kanban-col';
+        const tracksInState = state.tracks.filter(t => t.status === st);
+
+        col.innerHTML = `
+          <div class="kanban-header">
+            <span>${st}</span>
+            <span style="background:var(--bg-card); padding:2px 8px; border-radius: var(--radius); font-size:0.75rem;">${tracksInState.length}</span>
+          </div>
+          <div class="kanban-cards" ondragover="allowDrop(event)" ondragleave="removeDropHighlight(event)" ondrop="dropToKanban(event, '${st}')"></div>
+        `;
+        const cardsContainer = col.querySelector('.kanban-cards');
+        tracksInState.forEach(track => {
+          const card = document.createElement('div');
+          card.className = 'kanban-card';
+          card.draggable = true;
+          card.style.borderLeft = `3px solid ${track.color || '#ffffff'}`;
+          card.onclick = () => openTrackModal(track.id);
+          card.ondragstart = (e) => e.dataTransfer.setData('text/plain', track.id);
+          const dropBefore = e => { const r = card.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; };
+          card.ondragover = (e) => {
+            e.preventDefault();
+            const before = dropBefore(e);
+            card.classList.toggle('drag-target-top', before);
+            card.classList.toggle('drag-target-bottom', !before);
+          };
+          card.ondragleave = () => card.classList.remove('drag-target-top', 'drag-target-bottom');
+          card.ondrop = (e) => {
+            e.preventDefault(); e.stopPropagation();
+            card.classList.remove('drag-target-top', 'drag-target-bottom');
+            moveTrackInKanban(e.dataTransfer.getData('text/plain'), track.id, dropBefore(e));
+          };
+
+          const pendingTasks = (track.tasks || []).filter(t => !t.done).length;
+          const tasksBadge = pendingTasks > 0 ? `<span style="font-size:0.7rem; background:#333; padding:2px 6px; border-radius: var(--radius);">${pendingTasks} tarefas</span>` : '';
+          
+          const isThisPlaying = (currentPlayingTrackId === track.id && !audioElem.paused);
+          const playIcon = isThisPlaying ? '⏸' : '▶';
+          const catalogIds = state.tracks.filter(t => trackAudioSource(t)).map(t => t.id);
+
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="kanban-card-title">${escapeHtml(track.title)}</div>
+              <button class="mini-play-btn" data-play-track="${track.id}" onclick="playTrackInQueue('${track.id}', ${JSON.stringify(catalogIds).replace(/"/g, '&quot;')}, 'Catálogo Geral', event)" title="Ouvir">${playIcon}</button>
+            </div>
+            <div style="font-size:0.8rem; color:var(--text-muted); display:flex; justify-content:space-between; margin-top:4px;">
+              <span>${escapeHtml(track.project || 'Sem Projeto')}</span>
+              ${tasksBadge}
+            </div>
+            <div class="kanban-card-meta font-mono">
+              <span>${escapeHtml(track.bpm ? track.bpm + ' BPM' : '--')} / ${escapeHtml(track.key || '--')}</span>
+              <span style="color:#10b981; font-weight:600;">${escapeHtml(track.duration || '00:00')}</span>
+            </div>
+          `;
+          cardsContainer.appendChild(card);
+        });
+        board.appendChild(col);
+      });
+    }
+
+    function dropToKanban(e, newStatus) {
+      e.preventDefault();
+      const trackId = e.dataTransfer.getData('text/plain');
+      const track = state.tracks.find(t => t.id === trackId);
+      e.currentTarget.classList.remove('drag-over');
+      if (!track || !STATES.includes(newStatus)) return;
+      // Dropped on the column's empty area: the card goes to the end of that column.
+      setTrackStatus(track, newStatus);
+      state.tracks.splice(state.tracks.indexOf(track), 1);
+      state.tracks.push(track);
+      saveData(); renderAll();
+    }
+    // statusSince feeds the "faixas paradas" list on the Hoje panel.
+    function setTrackStatus(track, status) {
+      if (track.status !== status || !track.statusSince) track.statusSince = todayISO();
+      track.status = status;
+    }
+    // Card order in a column is the order of state.tracks; dropping on a card also adopts that card's column.
+    function moveTrackInKanban(trackId, targetId, before) {
+      const track = state.tracks.find(t => t.id === trackId), target = state.tracks.find(t => t.id === targetId);
+      if (!track || !target || track === target) return;
+      setTrackStatus(track, target.status);
+      state.tracks.splice(state.tracks.indexOf(track), 1);
+      state.tracks.splice(state.tracks.indexOf(target) + (before ? 0 : 1), 0, track);
+      saveData(); renderAll();
+    }
+
+    /* TAREFAS PENDENTES */
+    // Every pending item with a deadline: track tasks, demo follow-ups and release checklist items, soonest first.
+    function collectTasks() {
+      const allTasks = [];
+      
+      state.tracks.forEach(track => {
+        if(track.tasks) {
+          track.tasks.forEach(t => {
+            if(!t.done) allTasks.push({ ...t, trackTitle: track.title, trackId: track.id, trackColor: track.color });
+          });
+        }
+        (track.submissions || []).filter(submissionOpen).forEach(s => {
+          allTasks.push({ desc: 'Cobrar retorno: ' + s.label, date: s.followUp, trackTitle: track.title, trackId: track.id, trackColor: track.color });
+        });
+      });
+      state.scenarios.forEach(sc => {
+        (sc.checklist || []).filter(i => !i.done).forEach(i => {
+          allTasks.push({ desc: i.desc, date: checklistDate(i, sc.releaseDate), trackTitle: sc.title, scenarioId: sc.id });
+        });
+      });
+
+      return allTasks.sort((a,b) => {
+         if(!a.date && !b.date) return 0; if(!a.date) return 1; if(!b.date) return -1;
+         return new Date(a.date) - new Date(b.date);
+      });
+    }
+    function renderGlobalTasks() {
+      const container = document.getElementById('globalTasksList');
+      container.innerHTML = '';
+      const allTasks = collectTasks();
+      const today = todayISO();
+
+      if(allTasks.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem; padding: 20px;">Nenhuma tarefa pendente no backlog.</p>';
+        return;
+      }
+
+      allTasks.forEach(t => {
+         const row = document.createElement('div');
+         row.className = 'splice-row';
+         row.style.borderLeft = `3px solid ${t.trackColor || '#fff'}`;
+         row.onclick = () => t.scenarioId ? openScenarioModal(t.scenarioId) : openTrackModal(t.trackId);
+         const late = t.date && t.date < today;
+
+         row.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:4px;">
+               <div style="font-weight:600; color:#fff;">${escapeHtml(t.desc)}</div>
+               <div style="font-size:0.75rem; color:var(--text-muted);">${t.scenarioId ? 'Release' : 'Faixa'}: ${escapeHtml(t.trackTitle)}</div>
+            </div>
+            <div class="font-mono" style="color:${late ? '#ef4444' : 'var(--status-demo)'}; font-size:0.85rem; font-weight: 500;">
+               ${formatDate(t.date) || 'Sem prazo'}
+            </div>
+         `;
+         container.appendChild(row);
+      });
+    }
+
+    /* APRENDIZADOS GLOBAL */
+    function renderGlobalAprendizados() {
+      const container = document.getElementById('globalAprendizadosList');
+      if(!container) return;
+      container.innerHTML = '';
+      let allLearnings = [];
+
+      state.tracks.forEach(track => {
+        if(track.learnings) {
+          track.learnings.forEach(l => {
+            allLearnings.push({ ...l, trackTitle: track.title, trackId: track.id, trackColor: track.color });
+          });
+        }
+      });
+
+      allLearnings.sort((a,b) => {
+         if(!a.date && !b.date) return 0; if(!a.date) return 1; if(!b.date) return -1;
+         return new Date(b.date) - new Date(a.date);
+      });
+
+      if(allLearnings.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem; padding: 20px;">Nenhum aprendizado registrado até o momento.</p>';
+        return;
+      }
+
+      allLearnings.forEach(l => {
+         const row = document.createElement('div');
+         row.className = 'splice-row';
+         row.style.borderLeft = `3px solid ${l.trackColor || '#fff'}`;
+         row.onclick = () => openTrackModal(l.trackId);
+         
+         let dateStr = 'Sem data';
+         if(l.date) {
+            const [y,m,d] = l.date.split('-');
+            dateStr = `${d}/${m}/${y}`;
+         }
+
+         const tagsHtml = (l.tags && l.tags.length > 0) 
+           ? l.tags.map(tg => `<span class="badge badge-outline" style="font-size:10px; padding:2px 6px;">${escapeHtml(tg)}</span>`).join('') 
+           : '';
+
+         row.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:6px; max-width:65%;">
+               <div style="font-weight:600; color:#fff; font-size:0.95rem;">${escapeHtml(l.desc)}</div>
+               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <span style="font-size:0.75rem; color:var(--text-muted);">Faixa: <strong>${escapeHtml(l.trackTitle)}</strong></span>
+                  <div style="display:flex; gap:4px;">${tagsHtml}</div>
+               </div>
+            </div>
+            <div class="font-mono" style="color:var(--status-lancada); font-size:0.85rem; font-weight: 500;">
+               ${dateStr}
+            </div>
+         `;
+         container.appendChild(row);
+      });
+    }
+
+    /* CATÁLOGO */
+    function setupCatalogFilters() {
+      const pSelect = document.getElementById('filterProject');
+      const sSelect = document.getElementById('filterStatus');
+      const lSelect = document.getElementById('filterLabel');
+      
+      const currentProj = pSelect.value;
+      const currentStat = sSelect.value;
+      const currentLabel = lSelect.value;
+
+      pSelect.innerHTML = '<option value="">Todos os Projetos</option>';
+      (state.projects || []).forEach(p => pSelect.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`);
+      pSelect.value = currentProj;
+
+      sSelect.innerHTML = '<option value="">Todos os Estados</option>';
+      STATES.forEach(st => sSelect.innerHTML += `<option value="${st}">${st}</option>`);
+      sSelect.value = currentStat;
+
+      lSelect.innerHTML = '<option value="">Todas as Gravadoras</option>';
+      (state.labels || []).forEach(l => lSelect.innerHTML += `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`);
+      lSelect.value = currentLabel;
+    }
+
+    function renderCatalogo() {
+      const container = document.getElementById('catalogoList');
+      container.innerHTML = '';
+
+      const searchTxt = document.getElementById('filterSearch').value.toLowerCase();
+      const projFilter = document.getElementById('filterProject').value;
+      const statFilter = document.getElementById('filterStatus').value;
+      const labelFilter = document.getElementById('filterLabel').value;
+
+      const filteredTracks = state.tracks.filter(track => {
+        const matchTitle = (track.title || '').toLowerCase().includes(searchTxt);
+        const matchProj = !projFilter || track.project === projFilter;
+        const matchStat = !statFilter || track.status === statFilter;
+        const matchLabel = !labelFilter || track.label === labelFilter;
+        return matchTitle && matchProj && matchStat && matchLabel;
+      });
+
+      if(filteredTracks.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem; padding: 20px;">Nenhuma faixa encontrada com esses filtros.</p>';
+        return;
+      }
+
+      const catalogIds = filteredTracks.filter(t => trackAudioSource(t)).map(t => t.id);
+
+      filteredTracks.forEach(track => {
+        const row = document.createElement('div');
+        row.className = 'splice-row';
+        row.onclick = () => openTrackModal(track.id);
+        
+        const coverHtml = track.cover 
+          ? `<img src="${escapeHtml(coverSrc(track.cover))}" class="row-cover">` 
+          : `<div class="row-cover" style="border-left: 2px solid ${track.color || '#fff'};"></div>`;
+          
+        const sColor = STATUS_COLORS[track.status] || '#ffffff';
+        const isThisPlaying = (currentPlayingTrackId === track.id && !audioElem.paused);
+        const playIcon = isThisPlaying ? '⏸' : '▶';
+
+        const tagsHtml = (track.tags && track.tags.length > 0) 
+          ? track.tags.map(tg => `<span class="badge badge-outline" style="font-size:9px; padding:2px 4px;">${escapeHtml(tg)}</span>`).join('') 
+          : '';
+
+        row.innerHTML = `
+          <div class="row-info">
+            ${coverHtml}
+            <div>
+              <div class="row-title">${escapeHtml(track.title)}</div>
+              <div class="row-sub">${escapeHtml(track.project || '-')}${escapeHtml(track.genre ? ' • ' + track.genre : '')} ${escapeHtml((track.collabs && track.collabs.length) ? ' • ' + track.collabs.join(', ') : '')}</div>
+              ${tagsHtml ? `<div style="display:flex; gap:4px; margin-top:4px;">${tagsHtml}</div>` : ''}
+            </div>
+          </div>
+          <div class="row-tech font-mono">
+            <div class="tech-item"><span class="tech-label">BPM</span><span class="tech-val">${escapeHtml(track.bpm || '--')}</span></div>
+            <div class="tech-item"><span class="tech-label">Key</span><span class="tech-val">${escapeHtml(track.key || '--')}</span></div>
+            <div class="tech-item"><span class="tech-label">Duração</span><span class="tech-val" style="color:#10b981;">${escapeHtml(track.duration || '00:00')}</span></div>
+          </div>
+          <div class="row-actions">
+            <button class="mini-play-btn" data-play-track="${track.id}" style="width:32px; height:32px;" onclick="playTrackInQueue('${track.id}', ${JSON.stringify(catalogIds).replace(/"/g, '&quot;')}, 'Catálogo Geral', event)" title="Ouvir">${playIcon}</button>
+            <div class="row-sub" style="text-align: right; width:90px;">${escapeHtml(track.label || 'Independente')}</div>
+            <span class="badge" style="color: ${sColor}; border: 1px solid ${sColor}; background: transparent; min-width: 80px; text-align:center;">${escapeHtml(track.status)}</span>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    /* MODAL DE FAIXAS */
+    function openTrackModal(trackId = null) {
+      document.getElementById('trackModal').classList.add('active');
+      ['newTaskDesc','newTaskDate','newLearningDesc','newLearningDate','newSubmissionDate'].forEach(id => document.getElementById(id).value = '');
+      populateSelect('trackProject', state.projects);
+      populateSelect('newSubmissionLabel', state.labels);
+      populateSelect('trackLabel', state.labels);
+      populateSelect('trackGenre', state.genres);
+      populateMultiSelect('trackCollabs', state.collaborators);
+      populateMultiSelect('trackTags', state.tags);
+      populateMultiSelect('newLearningTags', state.tags);
+      populateCoverSelects();
+      populateAudioSelects();
+      
+      if (trackId) {
+        const track = state.tracks.find(t => t.id === trackId);
+        draftTrack = JSON.parse(JSON.stringify(track));
+        if(!draftTrack.tasks) draftTrack.tasks = [];
+        if(!draftTrack.learnings) draftTrack.learnings = [];
+        if(!draftTrack.tags) draftTrack.tags = [];
+        if(!draftTrack.submissions) draftTrack.submissions = [];
+        if(!draftTrack.audioHistory) {
+          draftTrack.audioHistory = draftTrack.audio ? [draftTrack.audio] : [];
+        }
+        document.getElementById('trackModalTitle').innerText = 'Editar Faixa';
+        document.getElementById('btnDeleteTrack').style.display = 'block';
+      } else {
+        draftTrack = { 
+          id: newId('track_'), title: '', project: '', genre: '', collabs: [], tags: [],
+          bpm: '', key: '', status: 'Ideia', label: '', labelConfirmed: false, 
+          color: '#ffffff', cover: '', audio: '', audioHistory: [], audioExternal: '', duration: '00:00', tasks: [], learnings: [], submissions: []
+        };
+        document.getElementById('trackModalTitle').innerText = 'Nova Faixa';
+        document.getElementById('btnDeleteTrack').style.display = 'none';
+      }
+
+      document.getElementById('trackTitle').value = draftTrack.title;
+      document.getElementById('trackProject').value = draftTrack.project || '';
+      document.getElementById('trackLabel').value = draftTrack.label || '';
+      document.getElementById('trackGenre').value = draftTrack.genre || '';
+      document.getElementById('trackBpm').value = draftTrack.bpm || '';
+      document.getElementById('trackKey').value = draftTrack.key || '';
+      document.getElementById('trackStatus').value = draftTrack.status;
+      document.getElementById('trackLabelConfirmed').checked = !!draftTrack.labelConfirmed;
+      document.getElementById('trackColor').value = draftTrack.color;
+      document.getElementById('trackCover').value = draftTrack.cover || '';
+      document.getElementById('trackAudio').value = draftTrack.audio || '';
+      document.getElementById('trackAudioExternal').value = draftTrack.audioExternal || '';
+      
+      previewModalCover(draftTrack.cover);
+      
+      const collabSelect = document.getElementById('trackCollabs');
+      Array.from(collabSelect.options).forEach(opt => { 
+        opt.selected = (draftTrack.collabs || []).includes(opt.value); 
+      });
+
+      const tagsSelect = document.getElementById('trackTags');
+      Array.from(tagsSelect.options).forEach(opt => { 
+        opt.selected = (draftTrack.tags || []).includes(opt.value); 
+      });
+
+      renderModalTasks();
+      renderModalLearnings();
+      renderModalSubmissions();
+      focusedVersionKey = null;
+      renderModalAudioHistory();
+    }
+
+    /* ENVIOS DE DEMO NO MODAL DE FAIXA */
+    function submissionStatusSelect(status, onchange) {
+      return `<select onclick="event.stopPropagation()" onchange="${onchange}" style="width:auto; padding:2px 6px; font-size:0.8rem;">${SUBMISSION_STATES.map(st => `<option${st === status ? ' selected' : ''}>${st}</option>`).join('')}</select>`;
+    }
+    function renderModalSubmissions() {
+      const container = document.getElementById('modalSubmissionsContainer');
+      container.innerHTML = draftTrack.submissions.map((s, idx) => `
+        <div style="display:flex; justify-content:space-between; background:var(--bg-dark); padding:8px 12px; border-radius: var(--radius); border:1px solid var(--border-color); align-items:center;">
+          <span style="color:#fff; font-weight:500;">${escapeHtml(s.label)}</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.75rem; color:var(--text-muted);" class="font-mono">${formatDate(s.date)}</span>
+            ${submissionStatusSelect(s.status, `setModalSubmissionStatus(${idx}, this.value)`)}
+            <button type="button" class="btn-action" style="padding:2px 6px; border:none; color:#ef4444;" onclick="removeModalSubmission(${idx})">✕</button>
+          </div>
+        </div>`).join('');
+    }
+    function addModalSubmission() {
+      const label = document.getElementById('newSubmissionLabel').value;
+      if (!label) return alert('Escolha a gravadora (cadastre em Configurações).');
+      const date = document.getElementById('newSubmissionDate').value || todayISO();
+      draftTrack.submissions.push({label, date, status: 'Enviada', followUp: addDays(date, FOLLOW_UP_DAYS)});
+      document.getElementById('newSubmissionLabel').value = '';
+      document.getElementById('newSubmissionDate').value = '';
+      renderModalSubmissions();
+    }
+    function setModalSubmissionStatus(idx, status) {
+      if (SUBMISSION_STATES.includes(status)) draftTrack.submissions[idx].status = status;
+    }
+    function removeModalSubmission(idx) {
+      draftTrack.submissions.splice(idx, 1);
+      renderModalSubmissions();
+    }
+
+    /* TELA DE ENVIOS DE DEMO */
+    const submissionOpen = s => s.status === 'Enviada' || s.status === 'Ouvida';
+    function renderDemos() {
+      const container = document.getElementById('demosList');
+      const today = todayISO();
+      const rows = state.tracks.flatMap(track => (track.submissions || []).map((s, idx) => ({...s, idx, track})));
+      // Waiting answers first, by follow-up date; closed ones after, newest first.
+      rows.sort((a, b) => submissionOpen(b) - submissionOpen(a) || (submissionOpen(a) ? a.followUp.localeCompare(b.followUp) : b.date.localeCompare(a.date)));
+      if (!rows.length) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem; padding: 20px;">Nenhum envio registrado. Registre envios no modal da faixa, em "Envios para Gravadoras".</p>';
+        return;
+      }
+      container.innerHTML = '';
+      rows.forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'splice-row';
+        row.style.borderLeft = `3px solid ${r.track.color || '#fff'}`;
+        if (!submissionOpen(r)) row.style.opacity = '0.6';
+        row.onclick = () => openTrackModal(r.track.id);
+        const late = submissionOpen(r) && r.followUp && r.followUp <= today;
+        const followHtml = submissionOpen(r)
+          ? `<span class="font-mono" style="font-size:0.8rem; color:${late ? '#ef4444' : 'var(--text-muted)'};">${late ? 'Cobrar retorno' : 'Cobrar em ' + formatDate(r.followUp)}</span>
+             <button class="btn-action" style="padding:2px 8px; font-size:11px;" title="Registrar que você cobrou; próximo lembrete em ${FOLLOW_UP_DAYS} dias" onclick="event.stopPropagation(); snoozeSubmission(${jsArg(r.track.id)}, ${r.idx})">Cobrei</button>`
+          : '';
+        row.innerHTML = `
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <div style="font-weight:600; color:#fff;">${escapeHtml(r.track.title)} → ${escapeHtml(r.label)}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Enviada em ${formatDate(r.date) || '--'}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            ${followHtml}
+            ${submissionStatusSelect(r.status, `setSubmissionStatus(${jsArg(r.track.id)}, ${r.idx}, this.value)`)}
+          </div>`;
+        container.appendChild(row);
+      });
+    }
+    function setSubmissionStatus(trackId, idx, status) {
+      const s = state.tracks.find(t => t.id === trackId)?.submissions?.[idx];
+      if (!s || !SUBMISSION_STATES.includes(status)) return;
+      s.status = status; saveData(); renderAll();
+    }
+    function snoozeSubmission(trackId, idx) {
+      const s = state.tracks.find(t => t.id === trackId)?.submissions?.[idx];
+      if (!s) return;
+      s.followUp = addDays(todayISO(), FOLLOW_UP_DAYS); saveData(); renderAll();
+    }
+
+    function renderModalTasks() {
+      const container = document.getElementById('modalTasksContainer');
+      container.innerHTML = '';
+      draftTrack.tasks.forEach((tsk, idx) => {
+        container.innerHTML += `
+          <div style="display:flex; justify-content:space-between; background:var(--bg-dark); padding:8px 12px; border-radius: var(--radius); border:1px solid var(--border-color); align-items:center;">
+             <label style="display:flex; align-items:center; gap:8px; margin:0; text-transform:none; cursor:pointer;">
+               <input type="checkbox" ${tsk.done ? 'checked' : ''} onchange="toggleModalTask(${idx})">
+               <span style="${tsk.done ? 'text-decoration:line-through; color:var(--text-muted);' : 'color:#fff;'} font-weight:500;">${escapeHtml(tsk.desc)}</span>
+             </label>
+             <div style="display:flex; align-items:center; gap:12px;">
+               <span style="font-size:0.75rem; color:var(--text-muted);" class="font-mono">${tsk.date ? tsk.date.split('-').reverse().join('/') : ''}</span>
+               <button type="button" class="btn-action" style="padding:2px 6px; border:none; color:#ef4444;" onclick="removeModalTask(${idx})">✕</button>
+             </div>
+          </div>
+        `;
+      });
+    }
+
+    function addModalTask() {
+      const desc = document.getElementById('newTaskDesc').value.trim();
+      const date = document.getElementById('newTaskDate').value;
+      if(!desc) return;
+      draftTrack.tasks.push({ desc, date, done: false });
+      document.getElementById('newTaskDesc').value = '';
+      document.getElementById('newTaskDate').value = '';
+      renderModalTasks();
+    }
+
+    function toggleModalTask(idx) {
+      draftTrack.tasks[idx].done = !draftTrack.tasks[idx].done;
+      renderModalTasks();
+    }
+    
+    function removeModalTask(idx) {
+      draftTrack.tasks.splice(idx, 1);
+      renderModalTasks();
+    }
+
+    /* GESTÃO DE APRENDIZADOS NO MODAL DE FAIXA */
+    function renderModalLearnings() {
+      const container = document.getElementById('modalLearningsContainer');
+      container.innerHTML = '';
+      if(!draftTrack.learnings) draftTrack.learnings = [];
+      
+      draftTrack.learnings.forEach((lrn, idx) => {
+        const lTagsHtml = (lrn.tags && lrn.tags.length > 0) 
+          ? lrn.tags.map(tg => `<span class="badge badge-outline" style="font-size:9px; padding:2px 4px;">${escapeHtml(tg)}</span>`).join('') 
+          : '';
+
+        container.innerHTML += `
+          <div style="display:flex; justify-content:space-between; background:var(--bg-dark); padding:8px 12px; border-radius: var(--radius); border:1px solid var(--border-color); align-items:center;">
+             <div style="display:flex; flex-direction:column; gap:4px; max-width:70%;">
+               <span style="color:#fff; font-weight:500; font-size:0.9rem;">${escapeHtml(lrn.desc)}</span>
+               <div style="display:flex; gap:4px;">${lTagsHtml}</div>
+             </div>
+             <div style="display:flex; align-items:center; gap:12px;">
+               <span style="font-size:0.75rem; color:var(--text-muted);" class="font-mono">${lrn.date ? lrn.date.split('-').reverse().join('/') : ''}</span>
+               <button type="button" class="btn-action" style="padding:2px 6px; border:none; color:#ef4444;" onclick="removeModalLearning(${idx})">✕</button>
+             </div>
+          </div>
+        `;
+      });
+    }
+
+    function addModalLearning() {
+      const desc = document.getElementById('newLearningDesc').value.trim();
+      const date = document.getElementById('newLearningDate').value;
+      const tags = Array.from(document.getElementById('newLearningTags').selectedOptions).map(opt => opt.value);
+      
+      if(!desc) return alert('Descreva o aprendizado.');
+      if(!draftTrack.learnings) draftTrack.learnings = [];
+
+      draftTrack.learnings.push({ desc, date, tags });
+      document.getElementById('newLearningDesc').value = '';
+      document.getElementById('newLearningDate').value = '';
+      Array.from(document.getElementById('newLearningTags').options).forEach(opt => opt.selected = false);
+      renderModalLearnings();
+    }
+
+    function removeModalLearning(idx) {
+      draftTrack.learnings.splice(idx, 1);
+      renderModalLearnings();
+    }
+
+    async function saveTrack() {
+      draftTrack.title = document.getElementById('trackTitle').value.trim();
+      if (!draftTrack.title) return alert('O título é obrigatório.');
+
+      draftTrack.project = document.getElementById('trackProject').value;
+      draftTrack.genre = document.getElementById('trackGenre').value;
+      draftTrack.collabs = Array.from(document.getElementById('trackCollabs').selectedOptions).map(opt => opt.value);
+      draftTrack.tags = Array.from(document.getElementById('trackTags').selectedOptions).map(opt => opt.value);
+      draftTrack.bpm = document.getElementById('trackBpm').value;
+      draftTrack.key = document.getElementById('trackKey').value;
+      setTrackStatus(draftTrack, document.getElementById('trackStatus').value);
+      draftTrack.label = document.getElementById('trackLabel').value;
+      draftTrack.labelConfirmed = document.getElementById('trackLabelConfirmed').checked;
+      draftTrack.color = document.getElementById('trackColor').value;
+      draftTrack.cover = safeUrl(document.getElementById('trackCover').value, 'image');
+      
+      let currentAudioVal = document.getElementById('trackAudio').value;
+      if (!currentAudioVal && draftTrack.audioHistory && draftTrack.audioHistory.length > 0) {
+        currentAudioVal = draftTrack.audioHistory[0];
+      }
+      draftTrack.audio = currentAudioVal;
+      draftTrack.audioExternal = safeUrl(document.getElementById('trackAudioExternal').value);
+
+      const savingTrack = draftTrack;
+      // Reading the audio length can take up to 4s; show it so the user does not close the modal and lose the edit.
+      const saveBtn = document.getElementById('btnSaveTrack');
+      saveBtn.disabled = true; saveBtn.textContent = 'Salvando…';
+      const duration = await calculateTrackDuration(savingTrack).finally(() => { saveBtn.disabled = false; saveBtn.textContent = 'Salvar Faixa'; });
+      if(draftTrack !== savingTrack || !document.getElementById('trackModal').classList.contains('active')) return;
+      draftTrack.duration = duration;
+
+      const idx = state.tracks.findIndex(t => t.id === draftTrack.id);
+      if (idx >= 0) state.tracks[idx] = draftTrack;
+      else state.tracks.push(draftTrack);
+      
+      saveData(); 
+      closeModal('trackModal'); 
+      renderAll();
+    }
+
+    function deleteTrack() {
+      if (!confirm('Excluir esta faixa?')) return;
+      if(currentPlayingTrackId === draftTrack.id) resetPlayer();
+      currentQueue = currentQueue.filter(id => id !== draftTrack.id);
+      state.tracks = state.tracks.filter(t => t.id !== draftTrack.id);
+      state.scenarios.forEach(sc => { sc.trackIds = sc.trackIds.filter(tId => tId !== draftTrack.id); });
+      state.sets.forEach(s => { s.trackIds = s.trackIds.filter(tId => tId !== draftTrack.id); });
+      saveData(); closeModal('trackModal'); renderAll();
+    }
+
+    /* MODAL DE CENÁRIOS / RELEASES */
+    function openScenarioModal(scenarioId = null) {
+      document.getElementById('scenarioModal').classList.add('active');
+      populateSelect('scenarioLabel', state.labels);
+      populateMultiSelect('scenarioTags', state.tags);
+      populateCoverSelects();
+      
+      if (scenarioId) {
+        const scenario = state.scenarios.find(s => s.id === scenarioId);
+        draftScenario = JSON.parse(JSON.stringify(scenario));
+        if(!draftScenario.tags) draftScenario.tags = [];
+        if(!draftScenario.checklist) draftScenario.checklist = [];
+        document.getElementById('scenarioModalTitle').innerText = 'Editar Cenário';
+        document.getElementById('btnDeleteScenario').style.display = 'block';
+      } else {
+        draftScenario = { id: newId('s_'), title: '', format: 'EP', label: '', tags: [], cover: '', trackIds: [], confirmed: false, releaseDate: '', catalog: '', checklist: [] };
+        document.getElementById('scenarioModalTitle').innerText = 'Novo Cenário';
+        document.getElementById('btnDeleteScenario').style.display = 'none';
+      }
+
+      document.getElementById('scenarioTitle').value = draftScenario.title;
+      document.getElementById('scenarioFormat').value = draftScenario.format;
+      document.getElementById('scenarioLabel').value = draftScenario.label || '';
+      document.getElementById('scenarioCover').value = draftScenario.cover || '';
+      document.getElementById('scenarioConfirmed').checked = !!draftScenario.confirmed;
+      document.getElementById('scenarioReleaseDate').value = draftScenario.releaseDate || '';
+      document.getElementById('scenarioCatalog').value = draftScenario.catalog || '';
+      document.getElementById('newChecklistDesc').value = '';
+      document.getElementById('newChecklistDate').value = '';
+      renderScenarioChecklist();
+
+      const sTagsSelect = document.getElementById('scenarioTags');
+      Array.from(sTagsSelect.options).forEach(opt => { 
+        opt.selected = (draftScenario.tags || []).includes(opt.value); 
+      });
+
+      previewScenarioCover(draftScenario.cover);
+    }
+
+    function saveScenario() {
+      draftScenario.title = document.getElementById('scenarioTitle').value.trim();
+      if (!draftScenario.title) return alert('O título do lançamento é obrigatório.');
+
+      draftScenario.format = document.getElementById('scenarioFormat').value;
+      draftScenario.label = document.getElementById('scenarioLabel').value;
+      draftScenario.tags = Array.from(document.getElementById('scenarioTags').selectedOptions).map(opt => opt.value);
+      draftScenario.cover = safeUrl(document.getElementById('scenarioCover').value, 'image');
+      draftScenario.confirmed = document.getElementById('scenarioConfirmed').checked;
+      draftScenario.releaseDate = document.getElementById('scenarioReleaseDate').value;
+      draftScenario.catalog = document.getElementById('scenarioCatalog').value.trim();
+
+      const idx = state.scenarios.findIndex(s => s.id === draftScenario.id);
+      const wasConfirmed = idx >= 0 && state.scenarios[idx].confirmed;
+      if(idx >= 0) state.scenarios[idx] = draftScenario;
+      else state.scenarios.push(draftScenario);
+      if (wasConfirmed && !draftScenario.confirmed) unsignTracks(draftScenario.trackIds);
+
+      if (draftScenario.confirmed) {
+        draftScenario.trackIds.forEach(tId => {
+          const t = state.tracks.find(tr => tr.id === tId);
+          if (t) { 
+            t.labelConfirmed = true; 
+            if (draftScenario.label) t.label = draftScenario.label; 
+            if (t.status !== 'Lançada') setTrackStatus(t, 'Assinada'); 
+          }
+        });
+      }
+      saveData(); closeModal('scenarioModal'); renderAll();
+    }
+
+    function deleteScenario() {
+      const stored = state.scenarios.find(s => s.id === draftScenario.id);
+      if (!confirm(stored?.confirmed ? 'Este release já está confirmado. Excluir apaga o registro do lançamento e devolve as faixas ao Planejamento. Continuar?' : 'Excluir este cenário?')) return;
+      state.scenarios = state.scenarios.filter(s => s.id !== draftScenario.id);
+      if (stored?.confirmed) unsignTracks(stored.trackIds);
+      saveData(); closeModal('scenarioModal'); renderAll();
+    }
+
+    /* CHECKLIST DE LANÇAMENTO */
+    function releaseMeta(scenario) {
+      const list = scenario.checklist || [];
+      const parts = [scenario.releaseDate && '📅 ' + formatDate(scenario.releaseDate), list.length && `Checklist ${list.filter(i => i.done).length}/${list.length}`].filter(Boolean);
+      return parts.length ? `<div class="scenario-meta" style="margin-top:4px;">${parts.join(' • ')}</div>` : '';
+    }
+    function renderScenarioChecklist() {
+      const container = document.getElementById('scenarioChecklistContainer');
+      const releaseDate = document.getElementById('scenarioReleaseDate').value;
+      if (!draftScenario.checklist.length) {
+        container.innerHTML = '<button type="button" class="btn-action" onclick="useDefaultChecklist()">Usar checklist padrão de lançamento</button>';
+        return;
+      }
+      container.innerHTML = draftScenario.checklist.map((item, idx) => {
+        const date = checklistDate(item, releaseDate);
+        return `
+        <div style="display:flex; justify-content:space-between; background:var(--bg-dark); padding:8px 12px; border-radius: var(--radius); border:1px solid var(--border-color); align-items:center;">
+          <label style="display:flex; align-items:center; gap:8px; margin:0; text-transform:none; cursor:pointer;">
+            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleChecklistItem(${idx})" style="width:auto;">
+            <span style="${item.done ? 'text-decoration:line-through; color:var(--text-muted);' : 'color:#fff;'} font-weight:500;">${escapeHtml(item.desc)}</span>
+          </label>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:0.75rem; color:var(--text-muted);" class="font-mono">${date ? formatDate(date) : 'sem data'}</span>
+            <button type="button" class="btn-action" style="padding:2px 6px; border:none; color:#ef4444;" onclick="removeChecklistItem(${idx})">✕</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    function useDefaultChecklist() {
+      draftScenario.checklist = RELEASE_CHECKLIST.map(([desc, offset]) => ({desc, offset, done: false, date: ''}));
+      renderScenarioChecklist();
+    }
+    function addChecklistItem() {
+      const desc = document.getElementById('newChecklistDesc').value.trim();
+      if (!desc) return;
+      draftScenario.checklist.push({desc, date: document.getElementById('newChecklistDate').value, done: false, offset: null});
+      document.getElementById('newChecklistDesc').value = '';
+      document.getElementById('newChecklistDate').value = '';
+      renderScenarioChecklist();
+    }
+    function toggleChecklistItem(idx) {
+      draftScenario.checklist[idx].done = !draftScenario.checklist[idx].done;
+      renderScenarioChecklist();
+    }
+    function removeChecklistItem(idx) {
+      draftScenario.checklist.splice(idx, 1);
+      renderScenarioChecklist();
+    }
+
+    // Confirming a release sets labelConfirmed; undo it so the tracks return to the planning drawer.
+    function unsignTracks(trackIds) {
+      for (const t of state.tracks) {
+        if (trackIds.includes(t.id) && !state.scenarios.some(s => s.confirmed && s.trackIds.includes(t.id))) t.labelConfirmed = false;
+      }
+    }
+
+    /* MODAL DE SETS */
+    function openSetModal(setId = null) {
+      document.getElementById('setModal').classList.add('active');
+      populateCoverSelects();
+      
+      if (setId) {
+        const stObj = state.sets.find(s => s.id === setId);
+        draftSet = JSON.parse(JSON.stringify(stObj));
+        document.getElementById('setModalTitle').innerText = 'Editar Set';
+        document.getElementById('btnDeleteSet').style.display = 'block';
+      } else {
+        draftSet = { id: newId('set_'), title: '', local: '', data: '', link: '', cover: '', notes: '', slotMinutes: 0, trackIds: [] };
+        document.getElementById('setModalTitle').innerText = 'Novo Set';
+        document.getElementById('btnDeleteSet').style.display = 'none';
+      }
+
+      document.getElementById('setTitle').value = draftSet.title;
+      document.getElementById('setLocal').value = draftSet.local || '';
+      document.getElementById('setData').value = draftSet.data || '';
+      document.getElementById('setLink').value = draftSet.link || '';
+      document.getElementById('setSlot').value = draftSet.slotMinutes || '';
+      document.getElementById('setCover').value = draftSet.cover || '';
+      document.getElementById('setNotes').value = draftSet.notes || '';
+      previewSetCover(draftSet.cover);
+    }
+
+    function saveSet() {
+      draftSet.title = document.getElementById('setTitle').value.trim();
+      if (!draftSet.title) return alert('O título do set é obrigatório.');
+
+      draftSet.local = document.getElementById('setLocal').value.trim();
+      draftSet.data = document.getElementById('setData').value;
+      draftSet.link = safeUrl(document.getElementById('setLink').value);
+      const slot = Number(document.getElementById('setSlot').value);
+      draftSet.slotMinutes = slot > 0 ? slot : 0;
+      draftSet.cover = safeUrl(document.getElementById('setCover').value, 'image');
+      draftSet.notes = document.getElementById('setNotes').value.trim();
+
+      const idx = state.sets.findIndex(s => s.id === draftSet.id);
+      if(idx >= 0) state.sets[idx] = draftSet;
+      else state.sets.push(draftSet);
+
+      saveData(); closeModal('setModal'); renderAll();
+    }
+
+    function deleteSet() {
+      if (!confirm('Excluir este set?')) return;
+      state.sets = state.sets.filter(s => s.id !== draftSet.id);
+      saveData(); closeModal('setModal'); renderAll();
+    }
+
+    function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+
+    /* CADASTROS */
+    function renderCadastrosBase() {
+      ['projects', 'collaborators', 'labels', 'genres', 'tags'].forEach(key => {
+        const container = document.getElementById(key === 'collaborators' ? 'collabList' : key.replace(/s$/, '') + 'List');
+        if(container) {
+          container.innerHTML = '';
+          (state[key] || []).forEach((item, idx) => {
+            const div = document.createElement('div'); div.className = 'panel-item';
+            div.innerHTML = `<span>${escapeHtml(item)}</span><div><button class="btn-action" style="padding:4px 8px; border:none;" title="Renomear" onclick="renameListOption('${key}', ${idx})">✎</button><button class="btn-action" style="padding:4px 8px; border:none;" title="Excluir" onclick="removeListOption('${key}', ${idx})">✕</button></div>`;
+            container.appendChild(div);
+          });
+        }
+      });
+    }
+    function addListOption(stateKey, inputId) {
+      const val = document.getElementById(inputId).value.trim();
+      if (!val) return;
+      state[stateKey] = state[stateKey] || [];
+      if (!state[stateKey].includes(val)) state[stateKey].push(val);
+      document.getElementById(inputId).value = ''; saveData(); renderCadastrosBase();
+    }
+    // Tracks and releases reference base lists by name, so a rename must rewrite every reference.
+    function renameListOption(stateKey, idx) {
+      const old = state[stateKey][idx];
+      const name = (prompt('Novo nome:', old) || '').trim();
+      if (!name || name === old) return;
+      if (state[stateKey].includes(name)) return alert('Já existe um cadastro com esse nome.');
+      const swap = v => v === old ? name : v;
+      const field = {projects: 'project', labels: 'label', genres: 'genre'}[stateKey];
+      state[stateKey][idx] = name;
+      for (const t of state.tracks) {
+        if (field) t[field] = swap(t[field]);
+        if (stateKey === 'labels') for (const s of t.submissions || []) s.label = swap(s.label);
+        if (stateKey === 'collaborators') t.collabs = (t.collabs || []).map(swap);
+        if (stateKey === 'tags') { t.tags = (t.tags || []).map(swap); for (const l of t.learnings || []) l.tags = (l.tags || []).map(swap); }
+      }
+      for (const s of state.scenarios) {
+        if (stateKey === 'labels') s.label = swap(s.label);
+        if (stateKey === 'tags') s.tags = (s.tags || []).map(swap);
+      }
+      saveData(); renderAll();
+    }
+    function removeListOption(stateKey, idx) {
+      const value = state[stateKey][idx];
+      const used = state.tracks.some(t => stateKey === 'projects' ? t.project === value : stateKey === 'labels' ? t.label === value || (t.submissions || []).some(s => s.label === value) : stateKey === 'genres' ? t.genre === value : stateKey === 'collaborators' ? (t.collabs || []).includes(value) : stateKey === 'tags' ? (t.tags || []).includes(value) || (t.learnings || []).some(l => (l.tags || []).includes(value)) : false)
+        || state.scenarios.some(s => stateKey === 'labels' ? s.label === value : stateKey === 'tags' && (s.tags || []).includes(value));
+      if (used) return alert('Este cadastro está em uso. Remova os vínculos antes de excluí-lo.');
+      state[stateKey].splice(idx, 1); saveData(); renderAll();
+    }
+
+    function populateSelect(selectId, optionsArray) {
+      const select = document.getElementById(selectId);
+      if(!select) return;
+      select.innerHTML = '<option value="">-- Selecione --</option>';
+      (optionsArray || []).forEach(opt => { const el = document.createElement('option'); el.value = opt; el.innerText = opt; select.appendChild(el); });
+    }
+
+    function populateMultiSelect(selectId, optionsArray) {
+      const select = document.getElementById(selectId);
+      if(!select) return;
+      select.innerHTML = '';
+      (optionsArray || []).forEach(opt => { const el = document.createElement('option'); el.value = opt; el.innerText = opt; select.appendChild(el); });
+    }
+
+    /* PLANEJAMENTO & RELEASES */
+    function renderMatutandoE_Releases() {
+      const drawerList = document.getElementById('drawerList');
+      const scenariosGrid = document.getElementById('scenariosGrid');
+      const releasesGrid = document.getElementById('releasesGrid');
+      drawerList.innerHTML = ''; scenariosGrid.innerHTML = ''; releasesGrid.innerHTML = '';
+
+      const usedTrackIds = new Set();
+      state.scenarios.forEach(s => s.trackIds.forEach(id => usedTrackIds.add(id)));
+      const availableTracks = state.tracks.filter(t => !t.labelConfirmed && !usedTrackIds.has(t.id));
+      document.getElementById('availableCount').innerText = availableTracks.length;
+      availableTracks.forEach(track => drawerList.appendChild(createTrackMiniCard(track, null, 0, 'drawer')));
+
+      state.scenarios.forEach(scenario => {
+        const card = document.createElement('div');
+        card.className = 'scenario-card';
+        const coverImg = scenario.cover ? `<img src="${escapeHtml(coverSrc(scenario.cover))}" class="scenario-cover">` : '';
+        const badge = scenario.confirmed ? `<span class="badge" style="background:#10b98120; color:#10b981;">Confirmado</span>` : `<span class="badge badge-outline">Planejamento</span>`;
+
+        let totalSeconds = 0;
+        scenario.trackIds.forEach(tId => {
+          const tr = state.tracks.find(t => t.id === tId);
+          if (tr && tr.duration) {
+            const parts = tr.duration.split(':');
+            if (parts.length === 2) {
+              totalSeconds += (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+            }
+          }
+        });
+        const totM = Math.floor(totalSeconds / 60);
+        const totS = totalSeconds % 60;
+        const totalDurationFormatted = `${totM.toString().padStart(2, '0')}:${totS.toString().padStart(2, '0')}`;
+
+        const sTagsHtml = (scenario.tags && scenario.tags.length > 0)
+          ? scenario.tags.map(tg => `<span class="badge badge-outline" style="font-size:9px; padding:2px 4px;">${escapeHtml(tg)}</span>`).join('')
+          : '';
+
+        card.innerHTML = `
+          <div class="scenario-header">
+            <div>
+              <div class="scenario-title">${escapeHtml(scenario.title)}</div>
+              <div class="scenario-meta">${escapeHtml(scenario.format)} • ${escapeHtml(scenario.label || 'Independente')}${scenario.catalog ? ' • ' + escapeHtml(scenario.catalog) : ''} • <span style="color:#10b981; font-weight:600;">Duração: ${totalDurationFormatted}</span></div>
+              ${releaseMeta(scenario)}
+              ${sTagsHtml ? `<div style="display:flex; gap:4px; margin-top:6px;">${sTagsHtml}</div>` : ''}
+              <div style="margin-top:8px;">${badge}</div>
+            </div>
+            <button class="btn-action" onclick="openScenarioModal('${scenario.id}')" style="padding:4px 8px; border:none;">✏️</button>
+          </div>
+          ${coverImg}
+          <div class="scenario-dropzone" ondragover="allowDrop(event)" ondragleave="removeDropHighlight(event)" ondrop="dropToScenario(event, '${scenario.id}')"></div>
+        `;
+        const dropzone = card.querySelector('.scenario-dropzone');
+        
+        scenario.trackIds.forEach((tId, tIdx) => {
+          const track = state.tracks.find(t => t.id === tId);
+          if (track) {
+            const trackEl = createTrackMiniCard(track, scenario.id, tIdx);
+            if(scenario.confirmed) trackEl.draggable = false;
+            dropzone.appendChild(trackEl);
+          }
+        });
+        if (scenario.confirmed) releasesGrid.appendChild(card);
+        else scenariosGrid.appendChild(card);
+      });
+    }
+
+    /* RENDERIZAÇÃO DA ABA SETS */
+    function renderSetsView() {
+      const drawerList = document.getElementById('setsDrawerList');
+      const setsGrid = document.getElementById('setsGrid');
+      drawerList.innerHTML = ''; setsGrid.innerHTML = '';
+
+      document.getElementById('setsTrackCount').innerText = state.tracks.length;
+      state.tracks.forEach(track => drawerList.appendChild(createTrackMiniCard(track, null, 0, 'setsDrawer')));
+
+      state.sets.forEach(setObj => {
+        const card = document.createElement('div');
+        card.className = 'scenario-card';
+        const coverImg = setObj.cover ? `<img src="${escapeHtml(coverSrc(setObj.cover))}" class="scenario-cover">` : '';
+
+        const setTracks = (setObj.trackIds || []).map(id => state.tracks.find(t => t.id === id)).filter(Boolean);
+        const totalSeconds = setTracks.reduce((sum, t) => sum + toSeconds(t.duration), 0);
+        const totalDurationFormatted = formatTime(totalSeconds);
+        const slotLeft = setObj.slotMinutes * 60 - totalSeconds;
+        const slotHtml = setObj.slotMinutes > 0
+          ? `<span style="font-size:0.8rem; color:${slotLeft < 0 ? '#ef4444' : 'var(--text-muted)'};">Slot ${setObj.slotMinutes} min • ${slotLeft < 0 ? 'excede ' + formatTime(-slotLeft) : 'faltam ' + formatTime(slotLeft)}</span>`
+          : '';
+
+        let dateStr = setObj.data ? setObj.data.split('-').reverse().join('/') : 'Data não informada';
+        let linkHtml = setObj.link ? `<a href="${escapeHtml(setObj.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--status-demo); text-decoration:none; font-size:0.8rem;">🔗 Ouvir Set</a>` : '';
+        let notesHtml = setObj.notes ? `<div style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-dark); padding:8px; border-radius: var(--radius); border:1px solid var(--border-color);">${escapeHtml(setObj.notes)}</div>` : '';
+
+        card.innerHTML = `
+          <div class="scenario-header">
+            <div>
+              <div class="scenario-title">${escapeHtml(setObj.title)}</div>
+              <div class="scenario-meta">📍 ${escapeHtml(setObj.local || 'Local livre')} • 📅 ${dateStr}</div>
+              <div style="margin-top:4px; display:flex; gap:12px; align-items:center;">
+                <span style="color:#10b981; font-weight:600; font-size:0.8rem;">Duração: ${totalDurationFormatted}</span>
+                ${slotHtml}
+                ${linkHtml}
+              </div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="btn-action" onclick="exportSetlist('${setObj.id}')" style="padding:4px 8px; border:none;" title="Exportar setlist (.txt)">📋</button>
+              <button class="btn-action" onclick="openSetModal('${setObj.id}')" style="padding:4px 8px; border:none;">✏️</button>
+            </div>
+          </div>
+          ${notesHtml}
+          ${coverImg}
+          <div class="scenario-dropzone" ondragover="allowDrop(event)" ondragleave="removeDropHighlight(event)" ondrop="dropToSet(event, '${setObj.id}')"></div>
+        `;
+        const dropzone = card.querySelector('.scenario-dropzone');
+        
+        let previous = null;
+        (setObj.trackIds || []).forEach((tId, tIdx) => {
+          const track = state.tracks.find(t => t.id === tId);
+          if (track) {
+            const warnings = previous ? transitionWarnings(previous, track) : [];
+            if (warnings.length) {
+              const warn = document.createElement('div');
+              warn.className = 'transition-warning';
+              warn.style.cssText = 'font-size:0.72rem; color:#eab308; padding:0 8px;';
+              warn.textContent = '⚠ ' + warnings.join(' • ');
+              dropzone.appendChild(warn);
+            }
+            dropzone.appendChild(createTrackMiniCard(track, setObj.id, tIdx, 'setCard'));
+            previous = track;
+          }
+        });
+        setsGrid.appendChild(card);
+      });
+    }
+
+    function createTrackMiniCard(track, parentId, index, context = 'scenario') {
+      const div = document.createElement('div');
+      div.className = 'track-mini';
+      div.draggable = true;
+      div.style.borderLeft = `2px solid ${track.color || '#fff'}`;
+      
+      div.ondragstart = (e) => {
+        e.dataTransfer.setData('text/plain', track.id);
+        e.dataTransfer.setData('source_context', context);
+        e.dataTransfer.setData('source_parent', parentId || 'drawer');
+      };
+
+      if(parentId && context !== 'drawer' && context !== 'setsDrawer') {
+        div.ondragover = (e) => {
+          e.preventDefault();
+          const rect = div.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          if(e.clientY < midY) {
+            div.classList.add('drag-target-top');
+            div.classList.remove('drag-target-bottom');
+          } else {
+            div.classList.add('drag-target-bottom');
+            div.classList.remove('drag-target-top');
+          }
+        };
+        div.ondragleave = () => {
+          div.classList.remove('drag-target-top', 'drag-target-bottom');
+        };
+        div.ondrop = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          div.classList.remove('drag-target-top', 'drag-target-bottom');
+          const trackId = e.dataTransfer.getData('text/plain');
+          const srcContext = e.dataTransfer.getData('source_context');
+          if(!trackId) return;
+
+          const rect = div.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          const insertBefore = e.clientY < midY;
+
+          if (context === 'setCard') {
+            reorderTrackInSet(parentId, trackId, index, insertBefore);
+          } else {
+            reorderTrackInScenario(parentId, trackId, index, insertBefore);
+          }
+        };
+      }
+
+      let queueList = state.tracks.filter(t => trackAudioSource(t)).map(t => t.id);
+      if(parentId && context === 'scenario') {const sc = state.scenarios.find(s => s.id === parentId); if(sc) queueList = sc.trackIds;}
+      if(parentId && context === 'setCard') {
+        const sObj = state.sets.find(s => s.id === parentId);
+        if(sObj) queueList = sObj.trackIds;
+      }
+
+      const isThisPlaying = (currentPlayingTrackId === track.id && !audioElem.paused);
+      const playIcon = isThisPlaying ? '⏸' : '▶';
+
+      div.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; flex-grow:1; overflow:hidden;">
+          <button class="mini-play-btn" data-play-track="${track.id}" style="width:24px; height:24px; font-size:10px; flex-shrink:0;" onclick="playTrackInQueue('${track.id}', ${JSON.stringify(queueList).replace(/"/g, '&quot;')}, 'Set/Release', event)">${playIcon}</button>
+          <div style="overflow:hidden;" onclick="openTrackModal('${track.id}')">
+            <strong style="color:#fff; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; cursor:pointer;">${escapeHtml(track.title)}</strong>
+            <span style="font-size:0.7rem; color:var(--text-muted); display:block;">${escapeHtml(track.project || '')}</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+          <span style="font-size:0.7rem; color:#10b981; font-weight:600;" class="font-mono">${escapeHtml(track.duration || '00:00')}</span>
+          <span class="font-mono" style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(track.bpm ? track.bpm + 'BPM' : '')}</span>
+          ${toCamelot(track.key) ? `<span class="font-mono" style="font-size:0.75rem; color:var(--text-muted);" title="Tom: ${escapeHtml(track.key)}">${toCamelot(track.key)}</span>` : ''}
+        </div>
+      `;
+      const openScenario = context === 'scenario' && state.scenarios.find(s => s.id === parentId && !s.confirmed);
+      if (parentId && (context === 'setCard' || openScenario)) {
+        const remove = document.createElement('button'); remove.className = 'btn-action'; remove.textContent = '✕';
+        remove.title = context === 'setCard' ? 'Remover do set' : 'Voltar para Faixas Livres';
+        remove.onclick = e => {e.stopPropagation(); context === 'setCard' ? removeTrackFromSet(parentId, track.id) : removeTrackFromScenario(parentId, track.id);};
+        div.appendChild(remove);
+      }
+      return div;
+    }
+    function removeTrackFromScenario(scenarioId, trackId) {
+      const scenario = state.scenarios.find(s => s.id === scenarioId);
+      if (!scenario || scenario.confirmed) return;
+      scenario.trackIds = scenario.trackIds.filter(id => id !== trackId); saveData(); renderMatutandoE_Releases();
+    }
+    // Plain-text setlist with each track's start time in the set, ready to paste or print.
+    function setlistText(setObj) {
+      const tracks = setObj.trackIds.map(id => state.tracks.find(t => t.id === id)).filter(Boolean);
+      const total = tracks.reduce((sum, t) => sum + toSeconds(t.duration), 0);
+      const header = [setObj.title, setObj.local, formatDate(setObj.data)].filter(Boolean).join(' — ');
+      const summary = `${tracks.length} faixas | Total ${formatTime(total)}` + (setObj.slotMinutes > 0 ? ` | Slot ${setObj.slotMinutes} min` : '');
+      let start = 0;
+      const lines = tracks.map((t, i) => {
+        const tech = [t.bpm && t.bpm + ' BPM', toCamelot(t.key) && `${toCamelot(t.key)} (${t.key})`].filter(Boolean).join(', ');
+        const warn = i ? transitionWarnings(tracks[i - 1], t) : [];
+        const line = `${String(i + 1).padStart(2, '0')}. ${formatTime(start)}  ${t.title}${t.project ? ' — ' + t.project : ''}${tech ? '  [' + tech + ']' : ''}${toSeconds(t.duration) ? '' : '  (sem duração)'}${warn.length ? '  ⚠ ' + warn.join(', ') : ''}`;
+        start += toSeconds(t.duration);
+        return line;
+      });
+      return [header, summary, '', ...lines, ''].join('\n');
+    }
+    function exportSetlist(setId) {
+      const setObj = state.sets.find(s => s.id === setId);
+      if (!setObj) return;
+      if (!setObj.trackIds.length) return alert('Este set ainda não tem faixas.');
+      const blob = new Blob([setlistText(setObj)], {type: 'text/plain;charset=utf-8'});
+      const a = document.createElement('a'), url = URL.createObjectURL(blob);
+      a.href = url; a.download = 'setlist_' + setObj.title.replace(/[^\w\-]+/g, '_') + '.txt'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    function removeTrackFromSet(setId, trackId) {
+      const set = state.sets.find(s => s.id === setId);
+      if (!set) return;
+      set.trackIds = set.trackIds.filter(id => id !== trackId); saveData(); renderSetsView();
+    }
+
+    function allowDrop(e) { 
+      e.preventDefault(); 
+      e.currentTarget.classList.add('drag-over');
+    }
+    function removeDropHighlight(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+
+    function dropToScenario(e, scenarioId) {
+      const destination = state.scenarios.find(s => s.id === scenarioId);
+      if (!destination || destination.confirmed) return;
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      const trackId = e.dataTransfer.getData('text/plain');
+      if (!trackId || !state.tracks.some(t => t.id === trackId)) return;
+      if (state.scenarios.some(s => s.confirmed && s.trackIds.includes(trackId))) return;
+
+      state.scenarios.forEach(sc => { if(!sc.confirmed) sc.trackIds = sc.trackIds.filter(id => id !== trackId); });
+      
+      const targetScenario = state.scenarios.find(sc => sc.id === scenarioId);
+      if (targetScenario && !targetScenario.trackIds.includes(trackId)) {
+        targetScenario.trackIds.push(trackId);
+      }
+      saveData(); renderMatutandoE_Releases();
+    }
+
+    function dropToSet(e, setId) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      const trackId = e.dataTransfer.getData('text/plain');
+      if (!state.tracks.some(t => t.id === trackId)) return;
+
+      const targetSet = state.sets.find(s => s.id === setId);
+      if (targetSet && !targetSet.trackIds.includes(trackId)) {
+        targetSet.trackIds.push(trackId);
+      }
+      saveData(); renderSetsView();
+    }
+
+    function dropToDrawer(e) {
+      e.preventDefault();
+      const trackId = e.dataTransfer.getData('text/plain');
+      if (!trackId || !state.tracks.some(t => t.id === trackId)) return;
+      if (state.scenarios.some(s => s.confirmed && s.trackIds.includes(trackId))) return;
+
+      state.scenarios.forEach(sc => { if(!sc.confirmed) sc.trackIds = sc.trackIds.filter(id => id !== trackId); });
+      saveData(); renderMatutandoE_Releases();
+    }
+
+    function reorderTrackInScenario(scenarioId, trackId, targetIndex, insertBefore) {
+      const scenario = state.scenarios.find(s => s.id === scenarioId);
+      if(!scenario || scenario.confirmed || !state.tracks.some(t => t.id === trackId)) return;
+      if(state.scenarios.some(s => s.confirmed && s.trackIds.includes(trackId))) return;
+      const anchor = scenario.trackIds[targetIndex];
+      if(anchor === trackId) return;
+      state.scenarios.forEach(sc => {if(!sc.confirmed) sc.trackIds = sc.trackIds.filter(id => id !== trackId);});
+      const index = scenario.trackIds.indexOf(anchor);
+      scenario.trackIds.splice(index < 0 ? scenario.trackIds.length : index + (insertBefore ? 0 : 1), 0, trackId);
+      saveData(); renderMatutandoE_Releases();
+    }
+
+    function reorderTrackInSet(setId, trackId, targetIndex, insertBefore) {
+      const setObj = state.sets.find(s => s.id === setId);
+      if(!setObj || !state.tracks.some(t => t.id === trackId)) return;
+      const anchor = setObj.trackIds[targetIndex];
+      if(anchor === trackId) return;
+      setObj.trackIds = setObj.trackIds.filter(id => id !== trackId);
+      const index = setObj.trackIds.indexOf(anchor);
+      setObj.trackIds.splice(index < 0 ? setObj.trackIds.length : index + (insertBefore ? 0 : 1), 0, trackId);
+      saveData(); renderSetsView();
+    }
+
+    // Audio files stay only in this browser's IndexedDB; the backup keeps their blobKey references (like a DJ library index).
+    // Like audio, covers stay indexed in this browser (MatutandoDB); the backup keeps only their cover_<hash> references.
+    async function buildBackupBlob() {
+      const backup = JSON.parse(JSON.stringify(state));
+      for (const item of backup.audioLibrary) if ((item.url || '').startsWith('blob:')) item.url = '';
+      for(const t of backup.tracks) {if((t.audio || '').startsWith('blob:')) t.audio=''; t.audioHistory=(t.audioHistory || []).filter(k=>!k.startsWith('blob:'));}
+      // No indentation: the backup is read by the app, not by people.
+      return new Blob([JSON.stringify(backup)], {type:'application/json'});
+    }
+
+    let backupDir = null;
+    const canPickFolder = () => typeof window.showDirectoryPicker === 'function';
+    async function folderWritable(ask) {
+      if (!backupDir) return false;
+      try {
+        if (await backupDir.queryPermission({mode: 'readwrite'}) === 'granted') return true;
+        return ask && await backupDir.requestPermission({mode: 'readwrite'}) === 'granted';
+      } catch { return false; }
+    }
+    // auto: called without a click, so it may only write to an already-authorized folder and never opens a download.
+    async function exportData(auto = false) {
+      try {
+        const toFolder = await folderWritable(!auto);
+        if (auto && !toFolder) return false;
+        const blob = await buildBackupBlob();
+        const name = 'matutando_backup_' + new Date().toLocaleDateString('sv') + '.json';
+        if (toFolder) {
+          const writable = await (await backupDir.getFileHandle(name, {create: true})).createWritable();
+          await writable.write(blob); await writable.close();
+        } else {
+          const a = document.createElement('a'); const url = URL.createObjectURL(blob); a.href = url;
+          a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+        try { localStorage.setItem('STUDIO_LAST_BACKUP', String(Date.now())); } catch {}
+        renderBackupStatus(); hideBackupToast();
+        return true;
+      } catch (err) {
+        if (!auto) alert('Não foi possível fazer o backup: ' + err.message);
+        return false;
+      }
+    }
+    async function chooseBackupFolder() {
+      if (!canPickFolder()) return alert('Este navegador não permite escolher uma pasta (use Chrome ou Edge). O backup continua sendo baixado normalmente.');
+      try {
+        backupDir = await window.showDirectoryPicker({id: 'matutando-backup', mode: 'readwrite'});
+        await putSetting('backupDir', backupDir);
+        renderBackupStatus();
+      } catch (err) { if (err.name !== 'AbortError') alert('Não foi possível usar essa pasta: ' + err.message); }
+    }
+    // Weekly reminder: back up silently when the chosen folder is still authorized, otherwise ask with a toast.
+    async function remindBackup() {
+      const days = backupAgeDays();
+      if (!state.tracks.length || (days != null && days <= BACKUP_WARN_DAYS)) return;
+      if (await exportData(true)) return;
+      document.getElementById('backupToastText').textContent = days == null ? 'Nenhum backup registrado ainda.' : `Seu último backup foi há ${days} dias.`;
+      document.getElementById('backupToast').style.display = 'flex';
+    }
+    function hideBackupToast() { document.getElementById('backupToast').style.display = 'none'; }
+
+    async function importData(event) {
+      const input = event.target;
+      const file = input.files[0]; if (!file) return;
+      try {
+        const raw = JSON.parse(await file.text());
+        const coverFiles = raw && typeof raw.coverFiles === 'object' && !Array.isArray(raw.coverFiles) ? raw.coverFiles : {};
+        const imported = normalizeState(raw);
+        delete imported.coverFiles;
+        if (!confirm('Importar este backup substituirá o catálogo atual. Continuar?')) return;
+        // Remap embedded audio keys: importing cannot overwrite audio used by the previous catalog.
+        for (const item of imported.audioLibrary) {
+          if (item.audioData) {
+            if (!/^data:(audio\/[^;,]+|application\/octet-stream);base64,/i.test(item.audioData)) throw Error('Áudio incorporado inválido');
+            const oldKey = item.blobKey;
+            const raw = atob(item.audioData.split(',')[1]);
+            const bytes = Uint8Array.from(raw, c => c.charCodeAt(0));
+            const blob = new Blob([bytes], {type:item.audioData.slice(5,item.audioData.indexOf(';'))});
+            // shortcut: same key + same size is treated as the same file already stored; compare a hash if keys ever get reused.
+            const existing = oldKey ? await getAudioBlobFromDB(oldKey).catch(() => null) : null;
+            if (existing && existing.size === blob.size) { delete item.audioData; continue; }
+            item.blobKey = newId('audio_');
+            await saveAudioBlobToDB(item.blobKey, blob);
+            for(const t of imported.tracks) {if(t.audio===oldKey) t.audio=item.blobKey; t.audioHistory=t.audioHistory.map(k=>k===oldKey?item.blobKey:k);}
+            delete item.audioData;
+          }
+        }
+        await restoreAudioLibrary(imported);
+        // Backups exported for a short while embedded covers (coverFiles); still accepted so those files restore fully.
+        for (const [key, dataUrl] of Object.entries(coverFiles)) {
+          if (!isCoverRef(key) || !/^data:image\/(png|jpe?g|gif|webp|avif);base64,/i.test(String(dataUrl))) continue;
+          const blob = dataUrlToBlob(dataUrl);
+          await appDB('covers', 'readwrite', s => s.put(blob, key));
+          coverUrls.set(key, URL.createObjectURL(blob));
+        }
+        await internCovers(imported);
+        await restoreCovers(imported);
+        persistState(imported);
+        resetPlayer(); state = imported; storageBlocked=false; lastSavedState=JSON.stringify(state);
+        ['trackModal','scenarioModal','setModal'].forEach(closeModal);
+        setupCatalogFilters(); renderAll();
+        const missing=state.audioLibrary.filter(a=>a.blobKey && !a.url).length;
+        alert('Importado com sucesso!'+(missing ? ' '+missing+' áudio(s) locais não estão neste navegador; reimporte os arquivos de áudio.' : ''));
+      } catch(err) {alert('Não foi possível importar: '+err.message);}
+      finally {input.value='';}
+    }
+
+    init();
+  </script>
+</body>
+</html>
