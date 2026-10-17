@@ -162,6 +162,8 @@
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .panel-box input:focus, .panel-box select:focus { border-color: var(--accent-gold); }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    /* Grid items default to min-width:auto, which lets date inputs push past narrow modals. */
+    .form-row > *, .form-row-3 > * { min-width: 0; }
 
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 18px; border-top: 1px solid var(--border-color); }
     .btn-secondary { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 9px 16px; border-radius: var(--radius); cursor: pointer; font-weight: 600; }
@@ -216,11 +218,13 @@
           <button onclick="switchView('mesa', this)">Mesa de Trabalho</button>
           <button onclick="switchView('tarefas', this)">Tarefas Pendentes</button>
           <button onclick="switchView('demos', this)">Envios de Demo</button>
+          <button onclick="switchView('contatos', this)">Contatos</button>
           <button onclick="switchView('aprendizados', this)">Aprendizados</button>
           <button onclick="switchView('catalogo', this)">Catálogo</button>
           <button onclick="switchView('matutando', this)">Planejamento</button>
           <button onclick="switchView('releases', this)">Releases</button>
           <button onclick="switchView('sets', this)">Sets</button>
+          <button onclick="switchView('financeiro', this)">Financeiro</button>
           <button onclick="switchView('projetos', this)" style="margin-top: 20px;">Configurações</button>
         </nav>
 
@@ -269,6 +273,15 @@
           <div id="demosList" class="splice-list"></div>
         </section>
 
+        <!-- VIEW: CONTATOS -->
+        <section id="view-contatos" class="view">
+          <header>
+            <h2>Contatos</h2>
+            <button class="btn-primary" onclick="openContactModal()">Novo Contato</button>
+          </header>
+          <div id="contactsGrid" class="scenarios-grid"></div>
+        </section>
+
         <!-- VIEW: APRENDIZADOS -->
         <section id="view-aprendizados" class="view">
           <header>
@@ -289,6 +302,11 @@
             <select id="filterProject" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todos os Projetos</option></select>
             <select id="filterStatus" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todos os Estados</option></select>
             <select id="filterLabel" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todas as Gravadoras</option></select>
+            <select id="filterTag" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todas as Tags</option></select>
+            <select id="filterCollab" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todos os Colaboradores</option></select>
+            <select id="filterKey" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todos os Tons</option></select>
+            <input type="number" id="filterBpmMin" placeholder="BPM mín." min="0" oninput="renderCatalogo()" class="font-mono" style="width: 110px;">
+            <input type="number" id="filterBpmMax" placeholder="BPM máx." min="0" oninput="renderCatalogo()" class="font-mono" style="width: 110px;">
           </div>
 
           <div id="catalogoList" class="splice-list"></div>
@@ -390,6 +408,15 @@
             <h2>Releases Confirmados</h2>
           </header>
           <div id="releasesGrid" class="scenarios-grid"></div>
+        </section>
+
+        <!-- VIEW: FINANCEIRO -->
+        <section id="view-financeiro" class="view">
+          <header>
+            <h2>Financeiro</h2>
+            <input type="month" id="financeMonth" onchange="renderFinanceiro()" class="font-mono" style="background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-main); padding:8px 10px; border-radius: var(--radius);">
+          </header>
+          <div id="financeGrid" class="hoje-grid"></div>
         </section>
 
         <!-- VIEW: SETS -->
@@ -524,10 +551,11 @@
       <div class="form-group" style="margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--border-color);">
         <label>Envios para Gravadoras</label>
         <div style="display:flex; gap:8px; margin-bottom: 10px;">
-          <select id="newSubmissionLabel" style="flex:1;"></select>
+          <select id="newSubmissionLabel" style="flex:1;" onchange="showSubmissionHint()"></select>
           <input type="date" id="newSubmissionDate" style="width:140px;" title="Data do envio (padrão: hoje)">
           <button type="button" class="btn-primary" onclick="addModalSubmission()">Registrar Envio</button>
         </div>
+        <div id="submissionLabelHint" class="row-sub" style="margin:-4px 0 8px;"></div>
         <div id="modalSubmissionsContainer" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;"></div>
       </div>
 
@@ -579,6 +607,13 @@
       <div style="display: flex; align-items: center; gap: 12px; margin-top: 10px;">
         <img id="modalCoverPreview" src="" style="width: 48px; height: 48px; border-radius: var(--radius); object-fit: cover; display: none; background: #222;" alt="Preview">
         <div class="form-group" style="flex-grow: 1;"><label>Marcador de Cor</label><input type="color" id="trackColor" style="height:38px;"></div>
+      </div>
+      <div class="form-group" style="margin-top: 10px;">
+        <label>Projeto no DAW (caminho do arquivo)</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="trackDawPath" class="font-mono" placeholder="Ex: D:\Projetos\Faixa Project\Faixa.als" style="flex:1;">
+          <button type="button" class="btn-action" style="padding:6px 12px;" onclick="copyDawPath()" title="Copia o caminho para colar no Explorer ou no DAW">Copiar</button>
+        </div>
       </div>
 
       <div class="modal-actions">
@@ -648,6 +683,18 @@
         <div id="scenarioChecklistContainer" style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;"></div>
       </div>
 
+      <div class="form-group" style="margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+        <label>Custos e receitas</label>
+        <div style="display:flex; gap:8px; margin-bottom: 10px; flex-wrap:wrap;">
+          <select id="newFinanceType" style="width:auto;"><option value="custo">Custo</option><option value="receita">Receita</option></select>
+          <input type="text" id="newFinanceDesc" placeholder="Ex: Masterização, arte, royalties" style="flex:1; min-width:150px;">
+          <input type="number" id="newFinanceAmount" placeholder="R$" min="0" step="0.01" class="font-mono" style="width:110px;">
+          <input type="date" id="newFinanceDate" style="width:140px;">
+          <button type="button" class="btn-primary" onclick="addFinanceEntry()">Add</button>
+        </div>
+        <div id="scenarioFinanceContainer" style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;"></div>
+      </div>
+
       <label style="display:flex; align-items:center; gap:10px; margin-top:10px; cursor:pointer; background:rgba(255,255,255,0.03); padding:12px; border-radius: var(--radius); border:1px solid var(--border-color);">
         <input type="checkbox" id="scenarioConfirmed"> 
         <span style="font-weight: 500; font-size: 0.9rem;">Release Oficial / Confirmado</span>
@@ -657,6 +704,36 @@
         <button class="btn-danger" id="btnDeleteScenario" onclick="deleteScenario()" style="margin-right:auto;">Excluir</button>
         <button class="btn-secondary" onclick="closeModal('scenarioModal')">Cancelar</button>
         <button class="btn-primary" onclick="saveScenario()">Salvar Cenário</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONTATO -->
+  <div id="contactModal" class="modal-overlay">
+    <div class="modal" style="width: 560px;">
+      <h3 id="contactModalTitle">Contato</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="contactKind" onchange="toggleContactKind()"><option value="gravadora">Gravadora</option><option value="contratante">Contratante / Promoter</option></select>
+        </div>
+        <div class="form-group" id="contactLabelGroup"><label>Gravadora</label><select id="contactLabel"></select></div>
+        <div class="form-group" id="contactNameGroup"><label>Nome</label><input type="text" id="contactName" placeholder="Ex: produtora, coletivo, casa de show"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Pessoa de contato (A&amp;R)</label><input type="text" id="contactPerson"></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="contactEmail"></div>
+      </div>
+      <div class="form-group"><label>Formato de demo aceito</label><input type="text" id="contactDemoFormat" placeholder="Ex: link privado do SoundCloud, até 3 faixas"></div>
+      <div class="form-group"><label>Observações</label><textarea id="contactNotes" style="height:70px; resize:vertical;"></textarea></div>
+      <div class="form-group">
+        <label>Histórico</label>
+        <div id="contactHistory" style="display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-danger" id="btnDeleteContact" onclick="deleteContact()" style="margin-right:auto;">Excluir</button>
+        <button class="btn-secondary" onclick="closeModal('contactModal')">Cancelar</button>
+        <button class="btn-primary" onclick="saveContact()">Salvar Contato</button>
       </div>
     </div>
   </div>
@@ -703,6 +780,17 @@
       <img id="modalSetCoverPreview" src="" style="width: 48px; height: 48px; border-radius: var(--radius); object-fit: cover; display: none; background: #222;" alt="Preview">
 
       <div class="form-group">
+        <label>Contratante</label>
+        <select id="setContractor"></select>
+      </div>
+
+      <div class="form-row-3">
+        <div class="form-group"><label>Cachê (R$)</label><input type="number" id="setFee" min="0" step="50" class="font-mono"></div>
+        <div class="form-group"><label>Pagamento</label><select id="setPayment"><option value="Pendente">Pendente</option><option value="Pago">Pago</option></select></div>
+        <div class="form-group"><label>Pago em</label><input type="date" id="setPaidOn"></div>
+      </div>
+
+      <div class="form-group">
         <label>Anotações</label>
         <textarea id="setNotes" placeholder="Notas sobre a tracklist, transições, ordem de mixagem..." style="height: 80px; resize: vertical;"></textarea>
       </div>
@@ -729,6 +817,10 @@
       ['Lançamento agendado na distribuidora', -28], ['Pré-save no ar', -21], ['Material de divulgação pronto', -14],
       ['Links pós-lançamento compartilhados', 1]
     ];
+    const PAYMENT_STATES = ['Pendente', 'Pago'];
+    // Money is kept as a plain number of reais, rounded to cents; anything invalid or negative becomes 0.
+    const money = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0; };
+    const brl = v => Number(v || 0).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
     const todayISO = () => new Date().toLocaleDateString('sv');
     const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv'); };
     // Returns HTML-safe text: dates come from imported backups too.
@@ -766,7 +858,8 @@
       scenarios: [],
       sets: [],
       coverLibrary: [],
-      audioLibrary: []
+      audioLibrary: [],
+      contacts: []
     };
 
     let selectedAudioFileCache = null;
@@ -799,7 +892,7 @@
     function normalizeState(input) {
       if (!input || typeof input !== 'object' || !Array.isArray(input.tracks)) throw Error('O arquivo precisa conter uma lista de faixas.');
       const data = JSON.parse(JSON.stringify(input));
-      const keys = ['projects','collaborators','labels','genres','tags','scenarios','sets','coverLibrary','audioLibrary'];
+      const keys = ['projects','collaborators','labels','genres','tags','scenarios','sets','coverLibrary','audioLibrary','contacts'];
       for (const key of keys) {
         if (data[key] == null) data[key] = [];
         if (!Array.isArray(data[key])) throw Error('Lista inválida: ' + key);
@@ -824,6 +917,7 @@
             item.audioHistory = strings(item.audioHistory || (item.audio ? [item.audio] : []));
             item.audio = String(item.audio || '');
             item.audioExternal = safeUrl(item.audioExternal);
+            item.dawPath = String(item.dawPath || '');
             item.duration = /^\d+:\d{2}$/.test(item.duration || '') ? item.duration : '00:00';
             for (const field of ['tasks','learnings']) {
               if (item[field] != null && !Array.isArray(item[field])) throw Error('Lista inválida: ' + field);
@@ -854,12 +948,37 @@
                 return {desc:String(x.desc || ''), done:!!x.done, date:String(x.date || ''), offset:Number.isFinite(x.offset) ? x.offset : null};
               });
             }
-            if (key === 'sets') {item.link = safeUrl(item.link); item.notes=String(item.notes || ''); item.data=String(item.data || ''); item.slotMinutes = Number(item.slotMinutes) > 0 ? Number(item.slotMinutes) : 0;}
+            if (key === 'sets') {
+              item.link = safeUrl(item.link); item.notes=String(item.notes || ''); item.data=String(item.data || ''); item.slotMinutes = Number(item.slotMinutes) > 0 ? Number(item.slotMinutes) : 0;
+              item.fee = money(item.fee);
+              item.paymentStatus = PAYMENT_STATES.includes(item.paymentStatus) ? item.paymentStatus : 'Pendente';
+              item.paidOn = /^\d{4}-\d{2}-\d{2}$/.test(item.paidOn || '') ? item.paidOn : '';
+              item.contractorId = String(item.contractorId || '');
+            }
+            if (key === 'scenarios') {
+              if (item.finance != null && !Array.isArray(item.finance)) throw Error('Lista inválida: finance');
+              item.finance = (item.finance || []).map(x => {
+                if (!x || typeof x !== 'object') throw Error('Lançamento financeiro inválido');
+                return {type: x.type === 'receita' ? 'receita' : 'custo', desc: String(x.desc || ''), amount: money(x.amount), date: /^\d{4}-\d{2}-\d{2}$/.test(x.date || '') ? x.date : ''};
+              });
+            }
           }
         }
       }
       const ids = new Set(data.tracks.map(t => t.id));
       for (const item of [...data.scenarios,...data.sets]) item.trackIds = item.trackIds.filter(id => ids.has(id));
+      const contactIds = new Set();
+      data.contacts = data.contacts.map(c => {
+        if (!c || typeof c !== 'object' || Array.isArray(c)) throw Error('Contato inválido');
+        const id = String(c.id || newId('contact_'));
+        if (!/^[\w-]+$/.test(id) || contactIds.has(id)) throw Error('Identificador inválido ou repetido: contacts');
+        contactIds.add(id);
+        const out = {id, kind: c.kind === 'gravadora' ? 'gravadora' : 'contratante', label: String(c.label || ''), name: String(c.name || ''),
+          person: String(c.person || ''), email: String(c.email || ''), demoFormat: String(c.demoFormat || ''), notes: String(c.notes || '')};
+        if (out.kind === 'gravadora' && out.label && !data.labels.includes(out.label)) data.labels.push(out.label);
+        return out;
+      });
+      for (const item of data.sets) if (!contactIds.has(item.contractorId)) item.contractorId = '';
       for (const item of data.coverLibrary) {if(!item || typeof item !== 'object') throw Error('Capa inválida'); item.name=String(item.name || 'Capa');item.url=safeUrl(item.url,'image');}
       for (const item of data.audioLibrary) {
         if(!item || typeof item !== 'object') throw Error('Áudio inválido');
@@ -1043,6 +1162,7 @@
         // One-time migrations, saved right away: covers out of localStorage, and a start date for each track's status.
         let changed = await internCovers(state);
         for (const t of state.tracks) if (!t.statusSince) { t.statusSince = todayISO(); changed = true; }
+        if (applyReleasedStatus()) changed = true;
         if (changed) try { persistState(state); } catch {}
       }
       await restoreCovers(state);
@@ -1057,7 +1177,7 @@
     const VIEW_RENDERERS = {
       hoje: () => renderHoje(), mesa: () => renderMesa(), tarefas: () => renderGlobalTasks(), demos: () => renderDemos(), aprendizados: () => renderGlobalAprendizados(),
       catalogo: () => renderCatalogo(), projetos: () => { renderCadastrosBase(); renderAudioLibrary(); renderCoverLibrary(); },
-      matutando: () => renderMatutandoE_Releases(), releases: () => renderMatutandoE_Releases(), sets: () => renderSetsView()
+      matutando: () => renderMatutandoE_Releases(), releases: () => renderMatutandoE_Releases(), sets: () => renderSetsView(), contatos: () => renderContacts(), financeiro: () => renderFinanceiro()
     };
     function renderAll() {
       VIEW_RENDERERS[activeView]();
@@ -1650,16 +1770,204 @@
       if (Number.isFinite(audioElem.duration)) audioElem.currentTime = Math.min(Number(timeline.value), audioElem.duration);
     });
 
+    /* CONTATOS */
+    // A label's file is keyed by the label name (the same string tracks and demo submissions use); promoters by name.
+    let draftContact = null;
+    const contactName = c => c.kind === 'gravadora' ? c.label : c.name;
+    const contactForLabel = label => state.contacts.find(c => c.kind === 'gravadora' && c.label === label);
+    const safeEmail = e => /^[^\s@<>"'()]+@[^\s@<>"'()]+\.[^\s@<>"'()]+$/.test(e || '') ? e : '';
+    const mailLink = e => safeEmail(e) ? `<a href="mailto:${escapeHtml(e)}" onclick="event.stopPropagation()" style="color:var(--accent-gold);">✉ ${escapeHtml(e)}</a>` : '';
+
+    // Automatic history: demo submissions and releases for a label, gigs for a promoter. Newest first.
+    function contactHistory(c) {
+      const items = [];
+      if (c.kind === 'gravadora') {
+        for (const t of state.tracks) for (const s of t.submissions || []) if (s.label === c.label) items.push({date: s.date, text: `Demo: ${t.title} — ${s.status}`, open: () => openTrackModal(t.id)});
+        for (const sc of state.scenarios) if (sc.label === c.label) items.push({date: sc.releaseDate, text: `Release: ${sc.title}${sc.confirmed ? '' : ' (planejamento)'}`, open: () => openScenarioModal(sc.id)});
+      }
+      for (const set of state.sets) if (set.contractorId === c.id) items.push({date: set.data, text: `Gig: ${set.title}${set.fee ? ` — ${brl(set.fee)} (${set.paymentStatus})` : ''}`, open: () => openSetModal(set.id)});
+      return items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }
+
+    function renderContacts() {
+      const grid = document.getElementById('contactsGrid');
+      grid.innerHTML = '';
+      if (!state.contacts.length) {
+        grid.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem;">Nenhum contato ainda. Crie fichas para gravadoras e contratantes; o histórico de envios, releases e gigs aparece sozinho.</p>';
+        return;
+      }
+      [...state.contacts].sort((a, b) => contactName(a).localeCompare(contactName(b))).forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'scenario-card';
+        card.style.cursor = 'pointer';
+        card.onclick = () => openContactModal(c.id);
+        let stats;
+        if (c.kind === 'gravadora') {
+          const subs = state.tracks.flatMap(t => (t.submissions || []).filter(s => s.label === c.label));
+          stats = `${subs.length} envio${subs.length === 1 ? '' : 's'} (${subs.filter(submissionOpen).length} aguardando) • ${state.scenarios.filter(sc => sc.label === c.label && sc.confirmed).length} releases`;
+        } else {
+          const gigs = state.sets.filter(s => s.contractorId === c.id);
+          const due = gigs.filter(s => s.paymentStatus === 'Pendente').reduce((n, s) => n + s.fee, 0);
+          stats = `${gigs.length} gig${gigs.length === 1 ? '' : 's'}${due ? ` • a receber ${brl(due)}` : ''}`;
+        }
+        card.innerHTML = `
+          <div>
+            <div class="scenario-title">${escapeHtml(contactName(c) || 'Sem nome')}</div>
+            <div class="scenario-meta">${c.kind === 'gravadora' ? 'Gravadora' : 'Contratante / Promoter'}${c.person ? ' • ' + escapeHtml(c.person) : ''}</div>
+          </div>
+          ${mailLink(c.email) ? `<div style="font-size:0.85rem;">${mailLink(c.email)}</div>` : ''}
+          ${c.demoFormat ? `<div class="row-sub">Demo: ${escapeHtml(c.demoFormat)}</div>` : ''}
+          <div class="row-sub">${stats}</div>`;
+        grid.appendChild(card);
+      });
+    }
+
+    function openContactModal(contactId = null) {
+      document.getElementById('contactModal').classList.add('active');
+      populateSelect('contactLabel', state.labels);
+      const existing = contactId && state.contacts.find(c => c.id === contactId);
+      draftContact = existing ? {...existing} : {id: newId('contact_'), kind: 'gravadora', label: '', name: '', person: '', email: '', demoFormat: '', notes: ''};
+      document.getElementById('contactModalTitle').innerText = existing ? 'Editar Contato' : 'Novo Contato';
+      document.getElementById('btnDeleteContact').style.display = existing ? 'block' : 'none';
+      for (const [id, field] of [['contactKind', 'kind'], ['contactLabel', 'label'], ['contactName', 'name'], ['contactPerson', 'person'], ['contactEmail', 'email'], ['contactDemoFormat', 'demoFormat'], ['contactNotes', 'notes']]) {
+        document.getElementById(id).value = draftContact[field] || '';
+      }
+      toggleContactKind();
+      const list = document.getElementById('contactHistory');
+      list.innerHTML = '';
+      const history = existing ? contactHistory(existing) : [];
+      if (!history.length) list.innerHTML = '<p class="hoje-empty">Sem histórico ainda.</p>';
+      history.forEach(h => {
+        const row = document.createElement('div');
+        row.className = 'hoje-item';
+        row.innerHTML = `<span style="font-size:0.85rem;">${escapeHtml(h.text)}</span><span class="font-mono row-sub" style="white-space:nowrap;">${formatDate(h.date) || 'sem data'}</span>`;
+        row.onclick = () => { closeModal('contactModal'); h.open(); };
+        list.appendChild(row);
+      });
+    }
+    function toggleContactKind() {
+      const label = document.getElementById('contactKind').value === 'gravadora';
+      document.getElementById('contactLabelGroup').style.display = label ? '' : 'none';
+      document.getElementById('contactNameGroup').style.display = label ? 'none' : '';
+    }
+    function saveContact() {
+      const v = id => document.getElementById(id).value.trim();
+      const c = {...draftContact, kind: v('contactKind') === 'gravadora' ? 'gravadora' : 'contratante', label: v('contactLabel'), name: v('contactName'),
+        person: v('contactPerson'), email: v('contactEmail'), demoFormat: v('contactDemoFormat'), notes: v('contactNotes')};
+      if (c.kind === 'gravadora' && !c.label) return alert('Escolha a gravadora (cadastre em Configurações).');
+      if (c.kind === 'contratante' && !c.name) return alert('Informe o nome do contratante.');
+      if (c.kind === 'gravadora' && state.contacts.some(x => x.id !== c.id && x.kind === 'gravadora' && x.label === c.label)) return alert('Essa gravadora já tem uma ficha.');
+      if (c.kind === 'gravadora') c.name = ''; else c.label = '';
+      const idx = state.contacts.findIndex(x => x.id === c.id);
+      if (idx >= 0) state.contacts[idx] = c; else state.contacts.push(c);
+      saveData(); closeModal('contactModal'); renderAll();
+    }
+    function deleteContact() {
+      if (!confirm('Excluir este contato? O histórico continua nas faixas e nos sets.')) return;
+      state.contacts = state.contacts.filter(c => c.id !== draftContact.id);
+      for (const set of state.sets) if (set.contractorId === draftContact.id) set.contractorId = '';
+      saveData(); closeModal('contactModal'); renderAll();
+    }
+    // Shown under the label picker when registering a demo: what that label accepts and whom to write to.
+    function showSubmissionHint() {
+      const c = contactForLabel(document.getElementById('newSubmissionLabel').value);
+      document.getElementById('submissionLabelHint').innerHTML = c
+        ? [c.demoFormat && 'Formato aceito: ' + escapeHtml(c.demoFormat), c.person && 'A&R: ' + escapeHtml(c.person), mailLink(c.email)].filter(Boolean).join(' • ')
+        : '';
+    }
+
+    /* FINANCEIRO */
+    function releaseBalance(sc) {
+      const cost = (sc.finance || []).filter(f => f.type === 'custo').reduce((n, f) => n + f.amount, 0);
+      const revenue = (sc.finance || []).filter(f => f.type === 'receita').reduce((n, f) => n + f.amount, 0);
+      return {cost, revenue, balance: Math.round((revenue - cost) * 100) / 100};
+    }
+    // Cash view of a month: what came in (paid gigs by payment date, release revenue by date) and went out (release costs).
+    // "A receber" is every unpaid gig fee, whatever the month; it is late when the gig already happened.
+    function financeSummary(month, today = todayISO()) {
+      const inMonth = d => (d || '').slice(0, 7) === month;
+      const moves = [];
+      for (const set of state.sets) if (set.paymentStatus === 'Pago' && set.fee && inMonth(set.paidOn)) moves.push({date: set.paidOn, desc: `Cachê: ${set.title}`, amount: set.fee, setId: set.id});
+      for (const sc of state.scenarios) for (const f of sc.finance || []) if (inMonth(f.date)) moves.push({date: f.date, desc: `${sc.title}: ${f.desc || f.type}`, amount: f.type === 'receita' ? f.amount : -f.amount, scenarioId: sc.id});
+      moves.sort((a, b) => a.date.localeCompare(b.date));
+      const inflow = moves.filter(m => m.amount > 0).reduce((n, m) => n + m.amount, 0);
+      const outflow = -moves.filter(m => m.amount < 0).reduce((n, m) => n + m.amount, 0);
+      const receivable = state.sets.filter(s => s.paymentStatus === 'Pendente' && s.fee > 0).sort((a, b) => (a.data || '9').localeCompare(b.data || '9'))
+        .map(s => ({...s, late: !!s.data && s.data < today}));
+      const releases = state.scenarios.filter(sc => (sc.finance || []).length).map(sc => ({sc, ...releaseBalance(sc)}));
+      const round = n => Math.round(n * 100) / 100;
+      return {inflow: round(inflow), outflow: round(outflow), net: round(inflow - outflow), moves, receivable,
+        receivableTotal: round(receivable.reduce((n, s) => n + s.fee, 0)), receivableLate: round(receivable.filter(s => s.late).reduce((n, s) => n + s.fee, 0)), releases};
+    }
+    function renderFinanceiro() {
+      const input = document.getElementById('financeMonth');
+      if (!input.value) input.value = todayISO().slice(0, 7);
+      const month = input.value, f = financeSummary(month);
+      document.getElementById('financeGrid').innerHTML = '';
+      const monthName = new Date(month + '-15T00:00:00').toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+      const big = (label, value, color = 'var(--accent)') => `<div><div class="row-sub">${label}</div><div class="hoje-big" style="font-size:1.4rem; color:${color};">${brl(value)}</div></div>`;
+
+      const sum = hojePanel(`Resumo de ${monthName}`, null, 'financeGrid');
+      const box = document.createElement('div');
+      box.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:14px;';
+      box.innerHTML = big('Entrou', f.inflow, 'var(--status-lancada)') + big('Saiu', f.outflow, '#ef4444') + big('Saldo do mês', f.net) + big('A receber (total)', f.receivableTotal, f.receivableLate ? '#ef4444' : 'var(--accent-gold)');
+      sum.appendChild(box);
+
+      const due = hojePanel('A receber', f.receivable.length, 'financeGrid');
+      f.receivable.forEach(s => hojeItem(due, `<div><div style="font-weight:600;">${escapeHtml(s.title)}</div><div class="row-sub">${escapeHtml(state.contacts.find(c => c.id === s.contractorId)?.name || 'Sem contratante')} • ${formatDate(s.data) || 'sem data'}</div></div>
+        <span class="font-mono" style="white-space:nowrap; color:${s.late ? '#ef4444' : 'var(--text-muted)'};">${brl(s.fee)}</span>`, () => openSetModal(s.id)));
+      if (!f.receivable.length) hojeEmpty(due, 'Nenhum cachê pendente.');
+
+      const moves = hojePanel(`Movimentos de ${monthName}`, f.moves.length, 'financeGrid');
+      f.moves.forEach(m => hojeItem(moves, `<div><div style="font-weight:600;">${escapeHtml(m.desc)}</div><div class="row-sub">${formatDate(m.date)}</div></div>
+        <span class="font-mono" style="white-space:nowrap; color:${m.amount > 0 ? 'var(--status-lancada)' : '#ef4444'};">${m.amount > 0 ? '+' : '−'} ${brl(Math.abs(m.amount))}</span>`,
+        () => m.setId ? openSetModal(m.setId) : openScenarioModal(m.scenarioId)));
+      if (!f.moves.length) hojeEmpty(moves, 'Nenhum movimento neste mês.');
+
+      const rel = hojePanel('Releases: se pagaram?', f.releases.length, 'financeGrid');
+      f.releases.forEach(r => hojeItem(rel, `<div><div style="font-weight:600;">${escapeHtml(r.sc.title)}</div><div class="row-sub">Custos ${brl(r.cost)} • Receitas ${brl(r.revenue)}</div></div>
+        <span class="font-mono" style="white-space:nowrap; color:${r.balance >= 0 ? 'var(--status-lancada)' : '#ef4444'};">${r.balance >= 0 ? 'se pagou' : 'faltam ' + brl(-r.balance)}</span>`, () => openScenarioModal(r.sc.id)));
+      if (!f.releases.length) hojeEmpty(rel, 'Registre custos e receitas dentro de cada release.');
+    }
+
+    /* CUSTOS E RECEITAS NO MODAL DO RELEASE */
+    function renderScenarioFinance() {
+      const container = document.getElementById('scenarioFinanceContainer');
+      const list = draftScenario.finance;
+      const {cost, revenue, balance} = releaseBalance(draftScenario);
+      container.innerHTML = list.map((f, idx) => `
+        <div style="display:flex; justify-content:space-between; background:var(--bg-dark); padding:8px 12px; border-radius: var(--radius); border:1px solid var(--border-color); align-items:center; gap:8px;">
+          <span style="font-size:0.85rem;"><span class="badge badge-outline">${f.type}</span> ${escapeHtml(f.desc)}</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="font-mono row-sub">${formatDate(f.date)}</span>
+            <span class="font-mono" style="color:${f.type === 'receita' ? 'var(--status-lancada)' : '#ef4444'};">${brl(f.amount)}</span>
+            <button type="button" class="btn-action" style="padding:2px 6px; border:none; color:#ef4444;" onclick="removeFinanceEntry(${idx})">✕</button>
+          </div>
+        </div>`).join('') + (list.length ? `<div class="row-sub" style="margin-top:4px;">Custos ${brl(cost)} • Receitas ${brl(revenue)} • <strong style="color:${balance >= 0 ? 'var(--status-lancada)' : '#ef4444'};">${balance >= 0 ? 'se pagou (' + brl(balance) + ')' : 'faltam ' + brl(-balance)}</strong></div>` : '');
+    }
+    function addFinanceEntry() {
+      const amount = money(document.getElementById('newFinanceAmount').value);
+      if (!amount) return alert('Informe um valor maior que zero.');
+      draftScenario.finance.push({type: document.getElementById('newFinanceType').value === 'receita' ? 'receita' : 'custo',
+        desc: document.getElementById('newFinanceDesc').value.trim(), amount, date: document.getElementById('newFinanceDate').value || todayISO()});
+      for (const id of ['newFinanceDesc', 'newFinanceAmount', 'newFinanceDate']) document.getElementById(id).value = '';
+      renderScenarioFinance();
+    }
+    function removeFinanceEntry(idx) {
+      draftScenario.finance.splice(idx, 1);
+      renderScenarioFinance();
+    }
+
     /* PAINEL HOJE */
     const STALL_DAYS = 30;
     const daysBetween = (from, to) => Math.round((new Date(to + 'T00:00:00') - new Date(from + 'T00:00:00')) / 86400000);
     const inDays = n => n === 0 ? 'hoje' : n === 1 ? 'amanhã' : `em ${n} dias`;
     const goTo = view => switchView(view, document.querySelector(`nav button[onclick*="'${view}'"]`));
-    function hojePanel(title, count = null) {
+    function hojePanel(title, count = null, gridId = 'hojeGrid') {
       const panel = document.createElement('div');
       panel.className = 'scenario-card hoje-panel';
       panel.innerHTML = `<div class="kanban-header" style="padding:0;"><span>${title}</span>${count != null ? `<span>${count}</span>` : ''}</div>`;
-      document.getElementById('hojeGrid').appendChild(panel);
+      document.getElementById(gridId).appendChild(panel);
       return panel;
     }
     function hojeItem(panel, html, onclick) {
@@ -1803,6 +2111,18 @@
       state.tracks.splice(state.tracks.indexOf(track), 1);
       state.tracks.push(track);
       saveData(); renderAll();
+    }
+    // A confirmed release whose date has arrived is out: its tracks become "Lançada" (checked on startup and on save).
+    function applyReleasedStatus(today = todayISO()) {
+      let changed = false;
+      for (const sc of state.scenarios) {
+        if (!sc.confirmed || !sc.releaseDate || sc.releaseDate > today) continue;
+        for (const id of sc.trackIds) {
+          const t = state.tracks.find(x => x.id === id);
+          if (t && t.status !== 'Lançada') { t.status = 'Lançada'; t.statusSince = sc.releaseDate; changed = true; }
+        }
+      }
+      return changed;
     }
     // statusSince feeds the "faixas paradas" list on the Hoje panel.
     function setTrackStatus(track, status) {
@@ -1954,24 +2274,36 @@
       lSelect.innerHTML = '<option value="">Todas as Gravadoras</option>';
       (state.labels || []).forEach(l => lSelect.innerHTML += `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`);
       lSelect.value = currentLabel;
+
+      const keys = [...new Set(state.tracks.map(t => String(t.key || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      for (const [id, placeholder, values] of [['filterTag', 'Todas as Tags', state.tags], ['filterCollab', 'Todos os Colaboradores', state.collaborators], ['filterKey', 'Todos os Tons', keys]]) {
+        const select = document.getElementById(id), current = select.value;
+        select.innerHTML = `<option value="">${placeholder}</option>` + (values || []).map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+        select.value = current;
+      }
+    }
+    // Pure filter so the catalog search can be tested without the DOM.
+    function matchesCatalogFilters(track, f) {
+      const bpm = Number(track.bpm);
+      return (track.title || '').toLowerCase().includes(f.search || '')
+        && (!f.project || track.project === f.project)
+        && (!f.status || track.status === f.status)
+        && (!f.label || track.label === f.label)
+        && (!f.tag || (track.tags || []).includes(f.tag))
+        && (!f.collab || (track.collabs || []).includes(f.collab))
+        && (!f.key || String(track.key || '').trim().toLowerCase() === f.key.toLowerCase())
+        && (f.bpmMin === '' || f.bpmMin == null || (bpm > 0 && bpm >= Number(f.bpmMin)))
+        && (f.bpmMax === '' || f.bpmMax == null || (bpm > 0 && bpm <= Number(f.bpmMax)));
     }
 
     function renderCatalogo() {
       const container = document.getElementById('catalogoList');
       container.innerHTML = '';
 
-      const searchTxt = document.getElementById('filterSearch').value.toLowerCase();
-      const projFilter = document.getElementById('filterProject').value;
-      const statFilter = document.getElementById('filterStatus').value;
-      const labelFilter = document.getElementById('filterLabel').value;
-
-      const filteredTracks = state.tracks.filter(track => {
-        const matchTitle = (track.title || '').toLowerCase().includes(searchTxt);
-        const matchProj = !projFilter || track.project === projFilter;
-        const matchStat = !statFilter || track.status === statFilter;
-        const matchLabel = !labelFilter || track.label === labelFilter;
-        return matchTitle && matchProj && matchStat && matchLabel;
-      });
+      const val = id => document.getElementById(id).value;
+      const filters = {search: val('filterSearch').toLowerCase(), project: val('filterProject'), status: val('filterStatus'), label: val('filterLabel'),
+        tag: val('filterTag'), collab: val('filterCollab'), key: val('filterKey'), bpmMin: val('filterBpmMin'), bpmMax: val('filterBpmMax')};
+      const filteredTracks = state.tracks.filter(track => matchesCatalogFilters(track, filters));
 
       if(filteredTracks.length === 0) {
         container.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem; padding: 20px;">Nenhuma faixa encontrada com esses filtros.</p>';
@@ -2027,6 +2359,7 @@
       ['newTaskDesc','newTaskDate','newLearningDesc','newLearningDate','newSubmissionDate'].forEach(id => document.getElementById(id).value = '');
       populateSelect('trackProject', state.projects);
       populateSelect('newSubmissionLabel', state.labels);
+      document.getElementById('submissionLabelHint').innerHTML = '';
       populateSelect('trackLabel', state.labels);
       populateSelect('trackGenre', state.genres);
       populateMultiSelect('trackCollabs', state.collaborators);
@@ -2049,7 +2382,7 @@
         document.getElementById('btnDeleteTrack').style.display = 'block';
       } else {
         draftTrack = { 
-          id: newId('track_'), title: '', project: '', genre: '', collabs: [], tags: [],
+          id: newId('track_'), title: '', project: '', genre: '', dawPath: '', collabs: [], tags: [],
           bpm: '', key: '', status: 'Ideia', label: '', labelConfirmed: false, 
           color: '#ffffff', cover: '', audio: '', audioHistory: [], audioExternal: '', duration: '00:00', tasks: [], learnings: [], submissions: []
         };
@@ -2061,6 +2394,7 @@
       document.getElementById('trackProject').value = draftTrack.project || '';
       document.getElementById('trackLabel').value = draftTrack.label || '';
       document.getElementById('trackGenre').value = draftTrack.genre || '';
+      document.getElementById('trackDawPath').value = draftTrack.dawPath || '';
       document.getElementById('trackBpm').value = draftTrack.bpm || '';
       document.getElementById('trackKey').value = draftTrack.key || '';
       document.getElementById('trackStatus').value = draftTrack.status;
@@ -2089,6 +2423,12 @@
       renderModalAudioHistory();
     }
 
+    function copyDawPath() {
+      const path = document.getElementById('trackDawPath').value.trim();
+      if (!path) return;
+      navigator.clipboard?.writeText(path).then(() => alert('Caminho copiado. Cole no Explorer (Win+E) ou no DAW.'), () => alert('Não foi possível copiar. Selecione o texto e use Ctrl+C.'));
+    }
+
     /* ENVIOS DE DEMO NO MODAL DE FAIXA */
     function submissionStatusSelect(status, onchange) {
       return `<select onclick="event.stopPropagation()" onchange="${onchange}" style="width:auto; padding:2px 6px; font-size:0.8rem;">${SUBMISSION_STATES.map(st => `<option${st === status ? ' selected' : ''}>${st}</option>`).join('')}</select>`;
@@ -2115,7 +2455,15 @@
       renderModalSubmissions();
     }
     function setModalSubmissionStatus(idx, status) {
-      if (SUBMISSION_STATES.includes(status)) draftTrack.submissions[idx].status = status;
+      if (!SUBMISSION_STATES.includes(status)) return;
+      const s = draftTrack.submissions[idx];
+      s.status = status;
+      // saveTrack reads label and status from the form, so an accepted demo is reflected there.
+      if (status === 'Aceita') {
+        document.getElementById('trackLabel').value = s.label;
+        document.getElementById('trackLabelConfirmed').checked = true;
+        if (document.getElementById('trackStatus').value !== 'Lançada') document.getElementById('trackStatus').value = 'Assinada';
+      }
     }
     function removeModalSubmission(idx) {
       draftTrack.submissions.splice(idx, 1);
@@ -2149,7 +2497,7 @@
         row.innerHTML = `
           <div style="display:flex; flex-direction:column; gap:4px;">
             <div style="font-weight:600; color:#fff;">${escapeHtml(r.track.title)} → ${escapeHtml(r.label)}</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Enviada em ${formatDate(r.date) || '--'}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Enviada em ${formatDate(r.date) || '--'}${(c => c ? [c.person && ' • A&R: ' + escapeHtml(c.person), mailLink(c.email) && ' • ' + mailLink(c.email)].filter(Boolean).join('') : '')(contactForLabel(r.label))}</div>
           </div>
           <div style="display:flex; align-items:center; gap:10px;">
             ${followHtml}
@@ -2161,7 +2509,15 @@
     function setSubmissionStatus(trackId, idx, status) {
       const s = state.tracks.find(t => t.id === trackId)?.submissions?.[idx];
       if (!s || !SUBMISSION_STATES.includes(status)) return;
-      s.status = status; saveData(); renderAll();
+      s.status = status;
+      if (status === 'Aceita') signTrackWithLabel(state.tracks.find(t => t.id === trackId), s.label);
+      saveData(); renderAll();
+    }
+    // An accepted demo signs the track with that label.
+    function signTrackWithLabel(track, label) {
+      track.label = label;
+      track.labelConfirmed = true;
+      if (track.status !== 'Lançada') setTrackStatus(track, 'Assinada');
     }
     function snoozeSubmission(trackId, idx) {
       const s = state.tracks.find(t => t.id === trackId)?.submissions?.[idx];
@@ -2260,6 +2616,7 @@
 
       draftTrack.project = document.getElementById('trackProject').value;
       draftTrack.genre = document.getElementById('trackGenre').value;
+      draftTrack.dawPath = document.getElementById('trackDawPath').value.trim();
       draftTrack.collabs = Array.from(document.getElementById('trackCollabs').selectedOptions).map(opt => opt.value);
       draftTrack.tags = Array.from(document.getElementById('trackTags').selectedOptions).map(opt => opt.value);
       draftTrack.bpm = document.getElementById('trackBpm').value;
@@ -2316,10 +2673,11 @@
         draftScenario = JSON.parse(JSON.stringify(scenario));
         if(!draftScenario.tags) draftScenario.tags = [];
         if(!draftScenario.checklist) draftScenario.checklist = [];
+        if(!draftScenario.finance) draftScenario.finance = [];
         document.getElementById('scenarioModalTitle').innerText = 'Editar Cenário';
         document.getElementById('btnDeleteScenario').style.display = 'block';
       } else {
-        draftScenario = { id: newId('s_'), title: '', format: 'EP', label: '', tags: [], cover: '', trackIds: [], confirmed: false, releaseDate: '', catalog: '', checklist: [] };
+        draftScenario = { id: newId('s_'), title: '', format: 'EP', label: '', tags: [], cover: '', trackIds: [], confirmed: false, releaseDate: '', catalog: '', checklist: [], finance: [] };
         document.getElementById('scenarioModalTitle').innerText = 'Novo Cenário';
         document.getElementById('btnDeleteScenario').style.display = 'none';
       }
@@ -2334,6 +2692,8 @@
       document.getElementById('newChecklistDesc').value = '';
       document.getElementById('newChecklistDate').value = '';
       renderScenarioChecklist();
+      for (const id of ['newFinanceDesc', 'newFinanceAmount', 'newFinanceDate']) document.getElementById(id).value = '';
+      renderScenarioFinance();
 
       const sTagsSelect = document.getElementById('scenarioTags');
       Array.from(sTagsSelect.options).forEach(opt => { 
@@ -2371,6 +2731,7 @@
           }
         });
       }
+      applyReleasedStatus();
       saveData(); closeModal('scenarioModal'); renderAll();
     }
 
@@ -2449,7 +2810,7 @@
         document.getElementById('setModalTitle').innerText = 'Editar Set';
         document.getElementById('btnDeleteSet').style.display = 'block';
       } else {
-        draftSet = { id: newId('set_'), title: '', local: '', data: '', link: '', cover: '', notes: '', slotMinutes: 0, trackIds: [] };
+        draftSet = { id: newId('set_'), title: '', local: '', data: '', link: '', cover: '', notes: '', slotMinutes: 0, fee: 0, paymentStatus: 'Pendente', paidOn: '', contractorId: '', trackIds: [] };
         document.getElementById('setModalTitle').innerText = 'Novo Set';
         document.getElementById('btnDeleteSet').style.display = 'none';
       }
@@ -2461,6 +2822,12 @@
       document.getElementById('setSlot').value = draftSet.slotMinutes || '';
       document.getElementById('setCover').value = draftSet.cover || '';
       document.getElementById('setNotes').value = draftSet.notes || '';
+      const contractors = state.contacts.filter(c => c.kind === 'contratante').sort((a, b) => a.name.localeCompare(b.name));
+      document.getElementById('setContractor').innerHTML = '<option value="">-- Nenhum (cadastre em Contatos) --</option>' + contractors.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+      document.getElementById('setContractor').value = draftSet.contractorId || '';
+      document.getElementById('setFee').value = draftSet.fee || '';
+      document.getElementById('setPayment').value = draftSet.paymentStatus || 'Pendente';
+      document.getElementById('setPaidOn').value = draftSet.paidOn || '';
       previewSetCover(draftSet.cover);
     }
 
@@ -2475,6 +2842,11 @@
       draftSet.slotMinutes = slot > 0 ? slot : 0;
       draftSet.cover = safeUrl(document.getElementById('setCover').value, 'image');
       draftSet.notes = document.getElementById('setNotes').value.trim();
+      draftSet.contractorId = document.getElementById('setContractor').value;
+      draftSet.fee = money(document.getElementById('setFee').value);
+      draftSet.paymentStatus = PAYMENT_STATES.includes(document.getElementById('setPayment').value) ? document.getElementById('setPayment').value : 'Pendente';
+      // Marking as paid without a date counts it as received today; switching back to pending clears the date.
+      draftSet.paidOn = draftSet.paymentStatus === 'Pago' ? (document.getElementById('setPaidOn').value || todayISO()) : '';
 
       const idx = state.sets.findIndex(s => s.id === draftSet.id);
       if(idx >= 0) state.sets[idx] = draftSet;
@@ -2531,12 +2903,14 @@
         if (stateKey === 'labels') s.label = swap(s.label);
         if (stateKey === 'tags') s.tags = (s.tags || []).map(swap);
       }
+      if (stateKey === 'labels') for (const c of state.contacts) c.label = swap(c.label);
       saveData(); renderAll();
     }
     function removeListOption(stateKey, idx) {
       const value = state[stateKey][idx];
       const used = state.tracks.some(t => stateKey === 'projects' ? t.project === value : stateKey === 'labels' ? t.label === value || (t.submissions || []).some(s => s.label === value) : stateKey === 'genres' ? t.genre === value : stateKey === 'collaborators' ? (t.collabs || []).includes(value) : stateKey === 'tags' ? (t.tags || []).includes(value) || (t.learnings || []).some(l => (l.tags || []).includes(value)) : false)
-        || state.scenarios.some(s => stateKey === 'labels' ? s.label === value : stateKey === 'tags' && (s.tags || []).includes(value));
+        || state.scenarios.some(s => stateKey === 'labels' ? s.label === value : stateKey === 'tags' && (s.tags || []).includes(value))
+        || (stateKey === 'labels' && state.contacts.some(c => c.kind === 'gravadora' && c.label === value));
       if (used) return alert('Este cadastro está em uso. Remova os vínculos antes de excluí-lo.');
       state[stateKey].splice(idx, 1); saveData(); renderAll();
     }
