@@ -81,6 +81,18 @@
     .kanban-cards { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px; border: 1px solid transparent; transition: 0.15s; }
     .kanban-cards.drag-over { border-color: var(--border-strong); background: rgba(255,255,255,0.02); }
 
+    .kanban-board.compact .kanban-col { width: 230px; min-width: 230px; }
+    .kanban-board.compact .kanban-cards { gap: 4px; }
+    .kanban-card.compact { padding: 6px 10px; }
+    /* Lista pequena no Planejamento e nos Sets: os mesmos cards, mais baixos e sem capa, projeto e anotações */
+    .view.compact .track-mini { padding: 4px 8px; font-size: 0.78rem; }
+    .view.compact .track-mini .mini-play-btn { width: 20px !important; height: 20px !important; }
+    .view.compact .track-mini .btn-action { padding: 1px 6px; font-size: 0.75rem; }
+    .view.compact .track-mini .mini-sub, .view.compact .scenario-cover, .view.compact .set-notes { display: none !important; }
+    .view.compact .scenario-card { padding: 12px 14px; gap: 8px; }
+    .view.compact .scenario-dropzone { min-height: 40px; padding: 4px; gap: 2px; }
+    .view.compact .drawer-list { gap: 2px; }
+    .view.compact .scenarios-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
     .kanban-card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border-color); padding: 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; position: relative; }
     .kanban-card:hover { background: var(--bg-hover); border-color: var(--border-strong); }
     .kanban-card-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; color: var(--accent); }
@@ -97,6 +109,18 @@
     .splice-row:hover { background: var(--bg-card); }
 
     .row-info { display: flex; align-items: center; gap: 16px; width: 30%; }
+    .catalog-toolbar { display: flex; gap: 10px; align-items: center; margin: -8px 0 16px; flex-wrap: wrap; }
+    .catalog-toolbar select { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 7px 10px; border-radius: var(--radius); font-size: 0.82rem; }
+    .view-toggle { display: flex; border: 1px solid var(--border-color); border-radius: var(--radius); }
+    .view-toggle button { background: transparent; border: none; color: var(--text-muted); padding: 6px 10px; cursor: pointer; font-size: 0.95rem; }
+    .view-toggle button.active { color: var(--accent); background: var(--bg-hover); }
+    .splice-row.compact { padding: 6px 12px; gap: 12px; font-size: 0.82rem; }
+    .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; overflow-y: auto; align-content: start; flex: 1; }
+    .cat-tile { cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0; position: relative; }
+    .cat-tile .tile-cover { width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 2rem; font-style: italic; color: var(--text-muted); }
+    .cat-tile:hover .tile-cover { border-color: var(--border-strong); }
+    .cat-tile .mini-play-btn { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.7); }
+    .cat-tile .tile-title { font-weight: 600; font-size: 0.85rem; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .row-cover { width: 44px; height: 44px; border-radius: var(--radius); background: #161616; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-color); }
     .row-title { font-weight: 600; font-size: 0.95rem; color: var(--accent); margin-bottom: 2px; }
     .row-sub { font-size: 0.75rem; color: var(--text-muted); }
@@ -189,7 +213,8 @@
     input[type="color"] { padding: 0; width: 100%; height: 38px; cursor: pointer; }
     input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
     input[type="color"]::-webkit-color-swatch { border-radius: var(--radius); border: none; }
-    select[multiple] option:checked { background: #2a2a2a linear-gradient(0deg, #2a2a2a, #2a2a2a); color: #fff; }
+    select[multiple] option { padding: 3px 6px; cursor: pointer; }
+    select[multiple] option:checked { background: #3a3220 linear-gradient(0deg, #3a3220, #3a3220); color: var(--accent-gold); }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -232,14 +257,14 @@
           <button class="active" onclick="switchView('hoje', this)">Hoje</button>
           <button onclick="switchView('mesa', this)">Mesa de Trabalho</button>
           <button onclick="switchView('tarefas', this)">Tarefas Pendentes</button>
-          <button onclick="switchView('demos', this)">Envios de Demo</button>
-          <button onclick="switchView('contatos', this)">Contatos</button>
           <button onclick="switchView('aprendizados', this)">Aprendizados</button>
-          <button onclick="switchView('catalogo', this)">Catálogo</button>
+          <button onclick="switchView('catalogo', this)" style="margin-top: 20px;">Catálogo</button>
           <button onclick="switchView('matutando', this)">Planejamento</button>
           <button onclick="switchView('releases', this)">Releases</button>
           <button onclick="switchView('sets', this)">Sets</button>
+          <button onclick="switchView('demos', this)" style="margin-top: 20px;">Envios de Demo</button>
           <button onclick="switchView('financeiro', this)">Financeiro</button>
+          <button onclick="switchView('contatos', this)">Contatos</button>
           <button onclick="switchView('projetos', this)" style="margin-top: 20px;">Configurações</button>
         </nav>
 
@@ -267,7 +292,13 @@
         <section id="view-mesa" class="view">
           <header>
             <h2>Mesa de Trabalho</h2>
-            <button class="btn-primary" onclick="openTrackModal()">Nova Faixa</button>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="view-toggle" id="mesaViewToggle" role="group" aria-label="Visualização da mesa">
+                <button type="button" data-view="compact" onclick="setMesaView('compact')" title="Lista pequena">☰</button>
+                <button type="button" data-view="large" onclick="setMesaView('large')" title="Lista grande">▤</button>
+              </div>
+              <button class="btn-primary" onclick="openTrackModal()">Nova Faixa</button>
+            </div>
           </header>
           <div class="kanban-board" id="kanbanBoard"></div>
         </section>
@@ -349,6 +380,21 @@
             <select id="filterKey" onchange="renderCatalogo()" style="flex: 1;"><option value="">Todos os Tons</option></select>
             <input type="number" id="filterBpmMin" placeholder="BPM mín." min="0" oninput="renderCatalogo()" class="font-mono" style="width: 110px;">
             <input type="number" id="filterBpmMax" placeholder="BPM máx." min="0" oninput="renderCatalogo()" class="font-mono" style="width: 110px;">
+          </div>
+
+          <div class="catalog-toolbar">
+            <div class="view-toggle" role="group" aria-label="Visualização">
+              <button type="button" data-view="grid" onclick="setCatalogView('grid')" title="Miniaturas">▦</button>
+              <button type="button" data-view="compact" onclick="setCatalogView('compact')" title="Lista pequena">☰</button>
+              <button type="button" data-view="large" onclick="setCatalogView('large')" title="Lista grande">▤</button>
+            </div>
+            <label class="row-sub" for="catalogSort">Ordenar por</label>
+            <select id="catalogSort" onchange="setCatalogSort(this.value)">
+              <option value="">Ordem da Mesa</option><option value="title">Título</option><option value="project">Projeto</option>
+              <option value="status">Status</option><option value="bpm">BPM</option><option value="key">Tom (Camelot)</option>
+              <option value="duration">Duração</option><option value="label">Gravadora</option><option value="genre">Gênero</option>
+            </select>
+            <button type="button" class="btn-action" id="catalogSortDir" style="padding:6px 10px;" onclick="toggleCatalogSortDir()" title="Inverter ordem">↑</button>
           </div>
 
           <div id="catalogoList" class="splice-list"></div>
@@ -433,7 +479,13 @@
         <section id="view-matutando" class="view">
           <header>
             <h2>Planejamento</h2>
-            <button class="btn-primary" onclick="openScenarioModal()">Novo Cenário</button>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="view-toggle list-view-toggle" role="group" aria-label="Visualização">
+                <button type="button" data-view="compact" onclick="setListView('matutando', 'compact')" title="Lista pequena">☰</button>
+                <button type="button" data-view="large" onclick="setListView('matutando', 'large')" title="Lista grande">▤</button>
+              </div>
+              <button class="btn-primary" onclick="openScenarioModal()">Novo Cenário</button>
+            </div>
           </header>
           <div class="matutando-container">
             <div class="drawer">
@@ -465,7 +517,13 @@
         <section id="view-sets" class="view">
           <header>
             <h2>Sets & Performances</h2>
-            <button class="btn-primary" onclick="openSetModal()">Novo Set</button>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="view-toggle list-view-toggle" role="group" aria-label="Visualização">
+                <button type="button" data-view="compact" onclick="setListView('sets', 'compact')" title="Lista pequena">☰</button>
+                <button type="button" data-view="large" onclick="setListView('sets', 'large')" title="Lista grande">▤</button>
+              </div>
+              <button class="btn-primary" onclick="openSetModal()">Novo Set</button>
+            </div>
           </header>
           <div class="matutando-container">
             <div class="drawer">
@@ -531,7 +589,7 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label>Colaboradores (Segure CTRL para vários)</label>
+          <label>Colaboradores (clique para marcar ou desmarcar)</label>
           <select id="trackCollabs" multiple style="height: 80px;"></select>
         </div>
         <div class="form-group">
@@ -563,7 +621,7 @@
           <select id="trackGenre"></select>
         </div>
         <div class="form-group">
-          <label>Tags (Segure CTRL para selecionar várias)</label>
+          <label>Tags (clique para marcar ou desmarcar)</label>
           <select id="trackTags" multiple style="height: 70px;"></select>
         </div>
       </div>
@@ -585,7 +643,7 @@
            <input type="text" id="newLearningDesc" placeholder="Ex: Compilar kick e bass abaixo de 100Hz com sidechain agressivo">
            <div style="display:flex; gap:8px;">
              <input type="date" id="newLearningDate" style="width:140px;">
-             <select id="newLearningTags" multiple style="flex:1; height:40px;" title="Selecione as tags do aprendizado"></select>
+             <select id="newLearningTags" multiple style="flex:1; height:64px;" title="Tags do aprendizado: clique para marcar ou desmarcar"></select>
              <button type="button" class="btn-primary" onclick="addModalLearning()">Add Aprendizado</button>
            </div>
         </div>
@@ -642,7 +700,7 @@
           <select id="trackCoverLibrarySelect" onchange="selectCoverFromLibrary(this.value)" style="margin-bottom: 6px;">
             <option value="">-- Selecionar da Biblioteca --</option>
           </select>
-          <input type="text" id="trackCover" placeholder="Ou cole a URL da capa..." oninput="previewModalCover(this.value)">
+          <input type="text" id="trackCover" placeholder="Ou cole a URL da capa..." oninput="document.getElementById('trackCoverLibrarySelect').value = ''; previewModalCover(this.value)">
         </div>
         <div class="form-group">
           <label>URL de Streaming Externa (Opcional)</label>
@@ -706,7 +764,7 @@
       </div>
 
       <div class="form-group">
-        <label>Tags do Lançamento (Segure CTRL para várias)</label>
+        <label>Tags do Lançamento (clique para marcar ou desmarcar)</label>
         <select id="scenarioTags" multiple style="height: 70px;"></select>
       </div>
 
@@ -715,7 +773,7 @@
         <select id="scenarioCoverLibrarySelect" onchange="selectScenarioCoverFromLibrary(this.value)" style="margin-bottom: 6px;">
           <option value="">-- Selecionar da Biblioteca --</option>
         </select>
-        <input type="text" id="scenarioCover" placeholder="Ou cole a URL da capa..." oninput="previewScenarioCover(this.value)">
+        <input type="text" id="scenarioCover" placeholder="Ou cole a URL da capa..." oninput="document.getElementById('scenarioCoverLibrarySelect').value = ''; previewScenarioCover(this.value)">
       </div>
       <img id="modalScenarioCoverPreview" src="" style="width: 48px; height: 48px; border-radius: var(--radius); object-fit: cover; display: none; background: #222;" alt="Preview">
 
@@ -821,7 +879,7 @@
         <select id="setCoverLibrarySelect" onchange="selectSetCoverFromLibrary(this.value)" style="margin-bottom: 6px;">
           <option value="">-- Selecionar da Biblioteca --</option>
         </select>
-        <input type="text" id="setCover" placeholder="Ou cole a URL da capa..." oninput="previewSetCover(this.value)">
+        <input type="text" id="setCover" placeholder="Ou cole a URL da capa..." oninput="document.getElementById('setCoverLibrarySelect').value = ''; previewSetCover(this.value)">
       </div>
       <img id="modalSetCoverPreview" src="" style="width: 48px; height: 48px; border-radius: var(--radius); object-fit: cover; display: none; background: #222;" alt="Preview">
 
@@ -1187,6 +1245,19 @@
         if (blob) coverUrls.set(key, URL.createObjectURL(blob));
       }
     }
+
+    // Native multi-select listboxes replace the whole selection on a plain click (only Ctrl adds/removes),
+    // which made collaborators impossible to unselect. A plain click now toggles just the clicked option.
+    document.addEventListener('mousedown', e => {
+      const opt = e.target, select = opt?.parentElement;
+      if (opt?.tagName !== 'OPTION' || !select?.multiple || opt.disabled) return;
+      e.preventDefault();
+      const top = select.scrollTop;
+      opt.selected = !opt.selected;
+      select.focus();
+      requestAnimationFrame(() => { select.scrollTop = top; });
+      select.dispatchEvent(new Event('change', {bubbles: true}));
+    });
 
     // Another tab saved: adopt its catalog so this tab's next save does not overwrite it.
     window.addEventListener('storage', async e => {
@@ -1752,23 +1823,30 @@
       renderCoverLibrary();
     }
 
+    // The library picker shows which library cover is chosen; the text field holds only a pasted URL
+    // (it used to show the internal cover_<hash> reference). Choosing "-- Selecionar --" with an empty field removes the cover.
+    function fillCoverFields(inputId, selectId, cover) {
+      const select = document.getElementById(selectId);
+      const inLibrary = !!cover && [...select.options].some(o => o.value === cover);
+      select.value = inLibrary ? cover : '';
+      document.getElementById(inputId).value = inLibrary ? '' : (cover || '');
+    }
+    const readCoverFields = (inputId, selectId) => safeUrl(document.getElementById(inputId).value.trim() || document.getElementById(selectId).value, 'image');
+
     function selectCoverFromLibrary(url) {
-      if(!url) return;
-      document.getElementById('trackCover').value = url;
+      document.getElementById('trackCover').value = '';
       previewModalCover(url);
       if(draftTrack) draftTrack.cover = url;
     }
 
     function selectScenarioCoverFromLibrary(url) {
-      if(!url) return;
-      document.getElementById('scenarioCover').value = url;
+      document.getElementById('scenarioCover').value = '';
       previewScenarioCover(url);
       if(draftScenario) draftScenario.cover = url;
     }
 
     function selectSetCoverFromLibrary(url) {
-      if(!url) return;
-      document.getElementById('setCover').value = url;
+      document.getElementById('setCover').value = '';
       previewSetCover(url);
       if(draftSet) draftSet.cover = url;
     }
@@ -2317,6 +2395,9 @@
     function renderMesa() {
       const board = document.getElementById('kanbanBoard');
       board.innerHTML = '';
+      const compact = catalogPrefs.mesaView === 'compact';
+      board.classList.toggle('compact', compact);
+      document.querySelectorAll('#mesaViewToggle button').forEach(b => b.classList.toggle('active', b.dataset.view === (compact ? 'compact' : 'large')));
       STATES.forEach(st => {
         const col = document.createElement('div');
         col.className = 'kanban-col';
@@ -2358,10 +2439,23 @@
           const playIcon = isThisPlaying ? '⏸' : '▶';
           const catalogIds = state.tracks.filter(t => trackAudioSource(t)).map(t => t.id);
 
+          const playBtn = size => `<button class="mini-play-btn" data-play-track="${track.id}" style="width:${size}px; height:${size}px;" onclick="playTrackInQueue('${track.id}', ${JSON.stringify(catalogIds).replace(/"/g, '&quot;')}, 'Catálogo Geral', event)" title="Ouvir">${playIcon}</button>`;
+          if (compact) {
+            card.classList.add('compact');
+            card.innerHTML = `
+              <div style="display:flex; align-items:center; gap:8px;">
+                ${playBtn(22)}
+                <span class="kanban-card-title" style="flex:1; margin:0; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</span>
+                ${pendingTasks ? `<span class="row-sub" title="${pendingTasks} tarefas pendentes">${pendingTasks}☐</span>` : ''}
+                <span class="font-mono" style="font-size:0.72rem; color:#10b981;">${escapeHtml(track.duration || '00:00')}</span>
+              </div>`;
+            cardsContainer.appendChild(card);
+            return;
+          }
           card.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
               <div class="kanban-card-title">${escapeHtml(track.title)}</div>
-              <button class="mini-play-btn" data-play-track="${track.id}" onclick="playTrackInQueue('${track.id}', ${JSON.stringify(catalogIds).replace(/"/g, '&quot;')}, 'Catálogo Geral', event)" title="Ouvir">${playIcon}</button>
+              ${playBtn(28)}
             </div>
             <div style="font-size:0.8rem; color:var(--text-muted); display:flex; justify-content:space-between; margin-top:4px;">
               <span>${escapeHtml(track.project || 'Sem Projeto')}</span>
@@ -2574,35 +2668,98 @@
         && (f.bpmMax === '' || f.bpmMax == null || (bpm > 0 && bpm <= Number(f.bpmMax)));
     }
 
+    /* VISUALIZAÇÃO E ORDENAÇÃO DO CATÁLOGO */
+    // Remembered per viewer only (a convenience), so it lives in localStorage outside the catalog data.
+    let catalogPrefs = {view: 'large', sort: '', dir: 1};
+    try { catalogPrefs = {...catalogPrefs, ...JSON.parse(localStorage.getItem('MATUTANDO_CATALOG_VIEW') || '{}')}; } catch {}
+    function storeViewPrefs() { try { localStorage.setItem('MATUTANDO_CATALOG_VIEW', JSON.stringify(catalogPrefs)); } catch {} }
+    function saveCatalogPrefs() { storeViewPrefs(); renderCatalogo(); }
+    function setMesaView(view) { catalogPrefs.mesaView = view; storeViewPrefs(); renderMesa(); }
+    // Planejamento and Sets: the compact layout is pure CSS on the section, so switching needs no re-render.
+    function setListView(viewId, view) { catalogPrefs[viewId] = view; storeViewPrefs(); applyListView(viewId); }
+    function applyListView(viewId) {
+      const compact = catalogPrefs[viewId] === 'compact';
+      document.getElementById('view-' + viewId).classList.toggle('compact', compact);
+      document.querySelectorAll(`#view-${viewId} .list-view-toggle button`).forEach(b => b.classList.toggle('active', b.dataset.view === (compact ? 'compact' : 'large')));
+    }
+    function setCatalogView(view) { catalogPrefs.view = view; saveCatalogPrefs(); }
+    function setCatalogSort(field) { catalogPrefs.sort = field; saveCatalogPrefs(); }
+    function toggleCatalogSortDir() { catalogPrefs.dir = -catalogPrefs.dir; saveCatalogPrefs(); }
+    const camelotRank = key => { const m = toCamelot(key).match(/^(\d+)([AB])$/); return m ? Number(m[1]) * 2 + (m[2] === 'B' ? 1 : 0) : null; };
+    const SORT_VALUE = {
+      title: t => t.title, project: t => t.project, label: t => t.label, genre: t => t.genre,
+      status: t => STATES.indexOf(t.status), bpm: t => Number(t.bpm) || null, key: t => camelotRank(t.key), duration: t => toSeconds(t.duration) || null
+    };
+    // Empty values always go last, whatever the direction; ties keep the Mesa order.
+    function sortTracks(tracks, field, dir = 1) {
+      const get = SORT_VALUE[field];
+      if (!get) return dir === 1 ? [...tracks] : [...tracks].reverse();
+      const empty = v => v == null || v === '';
+      return [...tracks].sort((a, b) => {
+        const x = get(a), y = get(b);
+        if (empty(x) || empty(y)) return empty(x) - empty(y);
+        return dir * (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'pt', {numeric: true, sensitivity: 'base'}));
+      });
+    }
+
     function renderCatalogo() {
       const container = document.getElementById('catalogoList');
       container.innerHTML = '';
+      const view = ['grid', 'compact', 'large'].includes(catalogPrefs.view) ? catalogPrefs.view : 'large';
+      container.className = view === 'grid' ? 'catalog-grid' : 'splice-list';
+      document.querySelectorAll('.catalog-toolbar .view-toggle button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+      document.getElementById('catalogSort').value = catalogPrefs.sort;
+      document.getElementById('catalogSortDir').textContent = catalogPrefs.dir === 1 ? '↑' : '↓';
 
       const val = id => document.getElementById(id).value;
       const filters = {search: val('filterSearch').toLowerCase(), project: val('filterProject'), status: val('filterStatus'), label: val('filterLabel'),
         tag: val('filterTag'), collab: val('filterCollab'), key: val('filterKey'), bpmMin: val('filterBpmMin'), bpmMax: val('filterBpmMax')};
-      const filteredTracks = state.tracks.filter(track => matchesCatalogFilters(track, filters));
+      const filteredTracks = sortTracks(state.tracks.filter(track => matchesCatalogFilters(track, filters)), catalogPrefs.sort, catalogPrefs.dir);
 
       if(filteredTracks.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem; padding: 20px;">Nenhuma faixa encontrada com esses filtros.</p>';
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem; padding: 20px; grid-column: 1 / -1;">Nenhuma faixa encontrada com esses filtros.</p>';
         return;
       }
 
       const catalogIds = filteredTracks.filter(t => trackAudioSource(t)).map(t => t.id);
 
       filteredTracks.forEach(track => {
+        const playBtn = size => `<button class="mini-play-btn" data-play-track="${track.id}" style="width:${size}px; height:${size}px;" onclick="playTrackInQueue('${track.id}', ${JSON.stringify(catalogIds).replace(/"/g, '&quot;')}, 'Catálogo Geral', event)" title="Ouvir">${currentPlayingTrackId === track.id && !audioElem.paused ? '⏸' : '▶'}</button>`;
+        if (view === 'grid') {
+          const tile = document.createElement('div');
+          tile.className = 'cat-tile';
+          tile.onclick = () => openTrackModal(track.id);
+          tile.innerHTML = `${track.cover ? `<img src="${escapeHtml(coverSrc(track.cover))}" class="tile-cover" alt="">` : `<div class="tile-cover" style="border-bottom:3px solid ${track.color || '#fff'};">${escapeHtml((track.title || '?').slice(0, 1))}</div>`}
+            ${playBtn(28)}
+            <div class="tile-title" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</div>
+            <div class="row-sub">${escapeHtml(track.project || '-')}</div>`;
+          container.appendChild(tile);
+          return;
+        }
         const row = document.createElement('div');
         row.className = 'splice-row';
         row.onclick = () => openTrackModal(track.id);
+        if (view === 'compact') {
+          const c = STATUS_COLORS[track.status] || '#ffffff';
+          row.classList.add('compact');
+          row.style.borderLeft = `3px solid ${track.color || '#fff'}`;
+          row.innerHTML = `${playBtn(22)}
+            <span class="row-title" style="flex:3; min-width:120px; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(track.title)}</span>
+            <span class="row-sub" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(track.project || '-')}</span>
+            <span class="font-mono" style="width:60px;">${escapeHtml(track.bpm || '--')}</span>
+            <span class="font-mono" style="width:50px;">${escapeHtml(track.key || '--')}</span>
+            <span class="font-mono" style="width:56px; color:#10b981;">${escapeHtml(track.duration || '00:00')}</span>
+            <span class="row-sub" style="width:110px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(track.label || 'Independente')}</span>
+            <span style="width:100px; color:${c}; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em;">${escapeHtml(track.status)}</span>`;
+          container.appendChild(row);
+          return;
+        }
         
         const coverHtml = track.cover 
           ? `<img src="${escapeHtml(coverSrc(track.cover))}" class="row-cover">` 
           : `<div class="row-cover" style="border-left: 2px solid ${track.color || '#fff'};"></div>`;
           
         const sColor = STATUS_COLORS[track.status] || '#ffffff';
-        const isThisPlaying = (currentPlayingTrackId === track.id && !audioElem.paused);
-        const playIcon = isThisPlaying ? '⏸' : '▶';
-
         const tagsHtml = (track.tags && track.tags.length > 0) 
           ? track.tags.map(tg => `<span class="badge badge-outline" style="font-size:9px; padding:2px 4px;">${escapeHtml(tg)}</span>`).join('') 
           : '';
@@ -2622,7 +2779,7 @@
             <div class="tech-item"><span class="tech-label">Duração</span><span class="tech-val" style="color:#10b981;">${escapeHtml(track.duration || '00:00')}</span></div>
           </div>
           <div class="row-actions">
-            <button class="mini-play-btn" data-play-track="${track.id}" style="width:32px; height:32px;" onclick="playTrackInQueue('${track.id}', ${JSON.stringify(catalogIds).replace(/"/g, '&quot;')}, 'Catálogo Geral', event)" title="Ouvir">${playIcon}</button>
+            ${playBtn(32)}
             <div class="row-sub" style="text-align: right; width:90px;">${escapeHtml(track.label || 'Independente')}</div>
             <span class="badge" style="color: ${sColor}; border: 1px solid ${sColor}; background: transparent; min-width: 80px; text-align:center;">${escapeHtml(track.status)}</span>
           </div>
@@ -2679,7 +2836,7 @@
       document.getElementById('trackStatus').value = draftTrack.status;
       document.getElementById('trackLabelConfirmed').checked = !!draftTrack.labelConfirmed;
       document.getElementById('trackColor').value = draftTrack.color;
-      document.getElementById('trackCover').value = draftTrack.cover || '';
+      fillCoverFields('trackCover', 'trackCoverLibrarySelect', draftTrack.cover);
       document.getElementById('trackAudio').value = draftTrack.audio || '';
       document.getElementById('trackAudioExternal').value = draftTrack.audioExternal || '';
       
@@ -2904,7 +3061,7 @@
       draftTrack.label = document.getElementById('trackLabel').value;
       draftTrack.labelConfirmed = document.getElementById('trackLabelConfirmed').checked;
       draftTrack.color = document.getElementById('trackColor').value;
-      draftTrack.cover = safeUrl(document.getElementById('trackCover').value, 'image');
+      draftTrack.cover = readCoverFields('trackCover', 'trackCoverLibrarySelect');
       
       let currentAudioVal = document.getElementById('trackAudio').value;
       if (!currentAudioVal && draftTrack.audioHistory && draftTrack.audioHistory.length > 0) {
@@ -2966,7 +3123,7 @@
       document.getElementById('scenarioTitle').value = draftScenario.title;
       document.getElementById('scenarioFormat').value = draftScenario.format;
       document.getElementById('scenarioLabel').value = draftScenario.label || '';
-      document.getElementById('scenarioCover').value = draftScenario.cover || '';
+      fillCoverFields('scenarioCover', 'scenarioCoverLibrarySelect', draftScenario.cover);
       document.getElementById('scenarioConfirmed').checked = !!draftScenario.confirmed;
       document.getElementById('scenarioReleaseDate').value = draftScenario.releaseDate || '';
       document.getElementById('scenarioCatalog').value = draftScenario.catalog || '';
@@ -2991,7 +3148,7 @@
       draftScenario.format = document.getElementById('scenarioFormat').value;
       draftScenario.label = document.getElementById('scenarioLabel').value;
       draftScenario.tags = Array.from(document.getElementById('scenarioTags').selectedOptions).map(opt => opt.value);
-      draftScenario.cover = safeUrl(document.getElementById('scenarioCover').value, 'image');
+      draftScenario.cover = readCoverFields('scenarioCover', 'scenarioCoverLibrarySelect');
       draftScenario.confirmed = document.getElementById('scenarioConfirmed').checked;
       draftScenario.releaseDate = document.getElementById('scenarioReleaseDate').value;
       draftScenario.catalog = document.getElementById('scenarioCatalog').value.trim();
@@ -3101,7 +3258,7 @@
       document.getElementById('setData').value = draftSet.data || '';
       document.getElementById('setLink').value = draftSet.link || '';
       document.getElementById('setSlot').value = draftSet.slotMinutes || '';
-      document.getElementById('setCover').value = draftSet.cover || '';
+      fillCoverFields('setCover', 'setCoverLibrarySelect', draftSet.cover);
       document.getElementById('setNotes').value = draftSet.notes || '';
       const contractors = state.contacts.filter(c => c.kind === 'contratante').sort((a, b) => a.name.localeCompare(b.name));
       document.getElementById('setContractor').innerHTML = '<option value="">-- Nenhum (cadastre em Contatos) --</option>' + contractors.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
@@ -3121,7 +3278,7 @@
       draftSet.link = safeUrl(document.getElementById('setLink').value);
       const slot = Number(document.getElementById('setSlot').value);
       draftSet.slotMinutes = slot > 0 ? slot : 0;
-      draftSet.cover = safeUrl(document.getElementById('setCover').value, 'image');
+      draftSet.cover = readCoverFields('setCover', 'setCoverLibrarySelect');
       draftSet.notes = document.getElementById('setNotes').value.trim();
       draftSet.contractorId = document.getElementById('setContractor').value;
       draftSet.fee = money(document.getElementById('setFee').value);
@@ -3219,6 +3376,7 @@
       const scenariosGrid = document.getElementById('scenariosGrid');
       const releasesGrid = document.getElementById('releasesGrid');
       drawerList.innerHTML = ''; scenariosGrid.innerHTML = ''; releasesGrid.innerHTML = '';
+      applyListView('matutando');
 
       const usedTrackIds = new Set();
       state.scenarios.forEach(s => s.trackIds.forEach(id => usedTrackIds.add(id)));
@@ -3284,6 +3442,7 @@
       const drawerList = document.getElementById('setsDrawerList');
       const setsGrid = document.getElementById('setsGrid');
       drawerList.innerHTML = ''; setsGrid.innerHTML = '';
+      applyListView('sets');
 
       document.getElementById('setsTrackCount').innerText = state.tracks.length;
       state.tracks.forEach(track => drawerList.appendChild(createTrackMiniCard(track, null, 0, 'setsDrawer')));
@@ -3303,7 +3462,7 @@
 
         let dateStr = setObj.data ? setObj.data.split('-').reverse().join('/') : 'Data não informada';
         let linkHtml = setObj.link ? `<a href="${escapeHtml(setObj.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--status-demo); text-decoration:none; font-size:0.8rem;">🔗 Ouvir Set</a>` : '';
-        let notesHtml = setObj.notes ? `<div style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-dark); padding:8px; border-radius: var(--radius); border:1px solid var(--border-color);">${escapeHtml(setObj.notes)}</div>` : '';
+        let notesHtml = setObj.notes ? `<div class="set-notes" style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-dark); padding:8px; border-radius: var(--radius); border:1px solid var(--border-color);">${escapeHtml(setObj.notes)}</div>` : '';
 
         card.innerHTML = `
           <div class="scenario-header">
@@ -3410,7 +3569,7 @@
           <button class="mini-play-btn" data-play-track="${track.id}" style="width:24px; height:24px; font-size:10px; flex-shrink:0;" onclick="playTrackInQueue('${track.id}', ${JSON.stringify(queueList).replace(/"/g, '&quot;')}, 'Set/Release', event)">${playIcon}</button>
           <div style="overflow:hidden;" onclick="openTrackModal('${track.id}')">
             <strong style="color:#fff; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; cursor:pointer;">${escapeHtml(track.title)}</strong>
-            <span style="font-size:0.7rem; color:var(--text-muted); display:block;">${escapeHtml(track.project || '')}</span>
+            <span class="mini-sub" style="font-size:0.7rem; color:var(--text-muted); display:block;">${escapeHtml(track.project || '')}</span>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
