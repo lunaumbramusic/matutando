@@ -84,6 +84,7 @@
     .kanban-board.compact .kanban-col { width: 230px; min-width: 230px; }
     .kanban-board.compact .kanban-cards { gap: 4px; }
     .kanban-card.compact { padding: 6px 10px; }
+    .file-drop { outline: 2px dashed var(--accent-gold) !important; outline-offset: 2px; }
     /* Lista pequena no Planejamento e nos Sets: os mesmos cards, mais baixos e sem capa, projeto e anotações */
     .view.compact .track-mini { padding: 4px 8px; font-size: 0.78rem; }
     .view.compact .track-mini .mini-play-btn { width: 20px !important; height: 20px !important; }
@@ -354,7 +355,7 @@
           <div class="track-page">
             <div class="track-page-col">
               <div class="scenario-card">
-                <div class="kanban-header" style="padding:0;"><span>Versões e comentários</span></div>
+                <div class="kanban-header" style="padding:0;"><span>Versões e comentários</span><button class="btn-action" style="padding:4px 10px; font-size:0.75rem;" onclick="pageAddVersionFile()" title="Escolha o arquivo numa pasta de música, ou arraste-o para esta página">+ Versão</button></div>
                 <div id="trackPageVersions" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
                 <div id="trackPagePanelSlot"></div>
               </div>
@@ -465,26 +466,15 @@
 
           <!-- BIBLIOTECA DE ÁUDIOS -->
           <div class="panel-box" style="background:var(--bg-card); border:1px solid var(--border-color); padding:20px; border-radius: var(--radius); margin-bottom: 24px;">
-            <h3>Biblioteca de Áudios (Músicas)</h3>
-            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-              <input type="text" id="newAudioName" placeholder="Título / Nome do Áudio" style="flex:1; min-width:200px;">
-              <button class="btn-primary" onclick="addLinkedAudio()" title="Escolha um arquivo numa das pastas de música; nada é copiado">Escolher arquivo…</button>
-              <input type="file" id="audioLibFile" accept="audio/*" onchange="handleAudioFileSelection(event)" style="display:none;">
-              <input type="text" id="newAudioUrl" placeholder="Ou URL do áudio (.mp3, .wav)..." style="flex:2; min-width:250px;">
-              <button class="btn-action" style="padding:8px 12px;" onclick="addAudioToLibrary()">Adicionar URL</button>
-            </div>
+            <h3>Biblioteca de Áudios</h3>
+            <p class="row-sub">Montada sozinha: os áudios entram aqui quando você adiciona versões nas faixas ("+ Arquivo…" ou arrastando o arquivo para a faixa).</p>
             <div id="audioLibraryList" class="panel-item-list" style="margin-top: 16px;"></div>
           </div>
 
           <!-- BIBLIOTECA DE CAPAS -->
           <div class="panel-box" style="background:var(--bg-card); border:1px solid var(--border-color); padding:20px; border-radius: var(--radius);">
-            <h3>Biblioteca de Capas (Imagens)</h3>
-            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-              <input type="text" id="newCoverName" placeholder="Título / Nome da Capa" style="flex:1; min-width:200px;">
-              <input type="file" id="coverLibFile" accept="image/*" onchange="handleCoverLibUpload(event)" style="padding:6px; background:var(--bg-dark); border:1px solid var(--border-color); border-radius: var(--radius); color:var(--text-main);">
-              <input type="text" id="newCoverUrl" placeholder="Ou URL da imagem..." style="flex:2; min-width:250px;">
-              <button class="btn-primary" onclick="addCoverToLibrary()">Adicionar à Biblioteca</button>
-            </div>
+            <h3>Biblioteca de Capas</h3>
+            <p class="row-sub">Montada sozinha: as capas entram aqui quando você escolhe uma imagem na faixa, no release ou no set (ou arrasta a imagem para a faixa).</p>
             <div id="coverLibraryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 16px; max-height: 250px; overflow-y: auto;"></div>
           </div>
         </section>
@@ -689,8 +679,10 @@
           <select id="trackAudioLibrarySelect" style="flex:1;">
             <option value="">-- Selecionar da Biblioteca de Áudios --</option>
           </select>
-          <button type="button" class="btn-primary" onclick="addAudioVersionToTrack()">Adicionar Versão</button>
+          <button type="button" class="btn-action" style="padding:8px 12px;" onclick="addAudioVersionToTrack()">Adicionar</button>
+          <button type="button" class="btn-primary" onclick="addVersionFileToDraft()" title="Escolha o arquivo numa pasta de música; ele vira a versão ativa">+ Arquivo…</button>
         </div>
+        <div class="row-sub" style="margin:-4px 0 8px;">Ou arraste o arquivo de áudio para esta janela.</div>
         <input type="hidden" id="trackAudio">
         <div id="trackAudioHistoryList" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;"></div>
 
@@ -717,9 +709,12 @@
       <div class="form-row" style="margin-top: 10px;">
         <div class="form-group">
           <label>Capa (Biblioteca ou URL)</label>
-          <select id="trackCoverLibrarySelect" onchange="selectCoverFromLibrary(this.value)" style="margin-bottom: 6px;">
-            <option value="">-- Selecionar da Biblioteca --</option>
-          </select>
+          <div style="display:flex; gap:6px; margin-bottom: 6px;">
+            <select id="trackCoverLibrarySelect" onchange="selectCoverFromLibrary(this.value)" style="flex:1; min-width:0;">
+              <option value="">-- Selecionar da Biblioteca --</option>
+            </select>
+            <button type="button" class="btn-action" style="padding:6px 10px; white-space:nowrap;" onclick="chooseCoverFile('track')" title="Escolha a imagem numa pasta de música">Escolher imagem…</button>
+          </div>
           <input type="text" id="trackCover" placeholder="Ou cole a URL da capa..." oninput="document.getElementById('trackCoverLibrarySelect').value = ''; previewModalCover(this.value)">
         </div>
         <div class="form-group">
@@ -790,9 +785,12 @@
 
       <div class="form-group">
         <label>Capa do Lançamento (Biblioteca ou URL)</label>
-        <select id="scenarioCoverLibrarySelect" onchange="selectScenarioCoverFromLibrary(this.value)" style="margin-bottom: 6px;">
-          <option value="">-- Selecionar da Biblioteca --</option>
-        </select>
+        <div style="display:flex; gap:6px; margin-bottom: 6px;">
+          <select id="scenarioCoverLibrarySelect" onchange="selectScenarioCoverFromLibrary(this.value)" style="flex:1; min-width:0;">
+            <option value="">-- Selecionar da Biblioteca --</option>
+          </select>
+          <button type="button" class="btn-action" style="padding:6px 10px; white-space:nowrap;" onclick="chooseCoverFile('scenario')" title="Escolha a imagem numa pasta de música">Escolher imagem…</button>
+        </div>
         <input type="text" id="scenarioCover" placeholder="Ou cole a URL da capa..." oninput="document.getElementById('scenarioCoverLibrarySelect').value = ''; previewScenarioCover(this.value)">
       </div>
       <img id="modalScenarioCoverPreview" src="" style="width: 48px; height: 48px; border-radius: var(--radius); object-fit: cover; display: none; background: #222;" alt="Preview">
@@ -896,9 +894,12 @@
 
       <div class="form-group">
         <label>Capa (Biblioteca ou URL)</label>
-        <select id="setCoverLibrarySelect" onchange="selectSetCoverFromLibrary(this.value)" style="margin-bottom: 6px;">
-          <option value="">-- Selecionar da Biblioteca --</option>
-        </select>
+        <div style="display:flex; gap:6px; margin-bottom: 6px;">
+          <select id="setCoverLibrarySelect" onchange="selectSetCoverFromLibrary(this.value)" style="flex:1; min-width:0;">
+            <option value="">-- Selecionar da Biblioteca --</option>
+          </select>
+          <button type="button" class="btn-action" style="padding:6px 10px; white-space:nowrap;" onclick="chooseCoverFile('set')" title="Escolha a imagem numa pasta de música">Escolher imagem…</button>
+        </div>
         <input type="text" id="setCover" placeholder="Ou cole a URL da capa..." oninput="document.getElementById('setCoverLibrarySelect').value = ''; previewSetCover(this.value)">
       </div>
       <img id="modalSetCoverPreview" src="" style="width: 48px; height: 48px; border-radius: var(--radius); object-fit: cover; display: none; background: #222;" alt="Preview">
@@ -987,7 +988,6 @@
       musicFolders: []
     };
 
-    let selectedAudioFileCache = null;
     let draftTrack = null;
     let draftScenario = null;
     let draftSet = null;
@@ -1115,10 +1115,12 @@
         folderIds.add(id);
         return {id, name: String(f.name || 'Pasta')};
       });
+      const safePath = v => typeof v === 'string' && !v.split('/').some(p => !p || p === '..') ? v : '';
+      for (const item of data.coverLibrary) { item.folderId = folderIds.has(item.folderId) ? item.folderId : ''; item.path = safePath(item.path); }
       for (const item of data.audioLibrary) {
         if(!item || typeof item !== 'object') throw Error('Áudio inválido');
         item.folderId = folderIds.has(item.folderId) ? item.folderId : '';
-        item.path = typeof item.path === 'string' && !item.path.split('/').some(p => !p || p === '..') ? item.path : '';
+        item.path = safePath(item.path);
         item.size = Number(item.size) > 0 ? Number(item.size) : 0;
         item.lastModified = Number(item.lastModified) > 0 ? Number(item.lastModified) : 0;
         item.name=String(item.name || 'Áudio'); item.url=safeUrl(item.url,'audio');
@@ -1257,7 +1259,7 @@
     async function storeCover(dataUrl) {
       const original = dataUrlToBlob(dataUrl);
       // The key hashes the original, so uploading the same image again still dedupes.
-      const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', await original.arrayBuffer()))].map(b => b.toString(16).padStart(2, '0')).join('');
+      const hash = await sha256Hex(original);
       const key = 'cover_' + hash.slice(0, 32);
       if (!coverUrls.has(key)) {
         const blob = await shrinkCover(original);
@@ -1282,7 +1284,10 @@
         const key = obj[field];
         if (!isCoverRef(key) || coverUrls.has(key)) continue;
         const blob = await appDB('covers', 'readonly', s => s.get(key)).catch(() => null);
-        if (blob) coverUrls.set(key, URL.createObjectURL(blob));
+        if (blob) { coverUrls.set(key, URL.createObjectURL(blob)); continue; }
+        const linked = data.coverLibrary.find(c => c.url === key && c.path);
+        const file = linked && await linkedFile(linked).catch(() => null);
+        if (file) coverUrls.set(key, URL.createObjectURL(file));
       }
     }
 
@@ -1599,13 +1604,6 @@
       saveData();
       return item;
     }
-    async function addLinkedAudio() {
-      if (!window.showOpenFilePicker) return document.getElementById('audioLibFile').click(); // other browsers: old copy flow
-      const fileHandle = await pickAudioFile();
-      if (!fileHandle) return;
-      const nameInput = document.getElementById('newAudioName');
-      if (await linkFileHandle(fileHandle, nameInput.value.trim())) { nameInput.value = ''; renderAudioSettings(); }
-    }
 
     async function renderMusicFolders() {
       const list = document.getElementById('musicFolderList');
@@ -1634,6 +1632,128 @@
     }
     function renderAudioSettings() { renderMusicFolders(); renderAudioLibrary(); }
 
+    /* VERSÕES E CAPAS DIRETO NA FAIXA */
+    // A new version becomes the active one; pending comments and sections may come along; duration is re-read.
+    async function addVersionToStoredTrack(trackId, key) {
+      const t = state.tracks.find(x => x.id === trackId);
+      if (!t) return;
+      t.audioHistory = t.audioHistory || [];
+      const previous = t.audio && t.audio !== key ? t.audio : t.audioHistory.filter(k => k !== key).at(-1);
+      if (!t.audioHistory.includes(key)) { t.audioHistory.push(key); if (previous) offerCarryOver(previous, key); }
+      t.audio = key;
+      t.duration = await calculateTrackDuration(t);
+      saveData();
+    }
+    async function addVersionFileToDraft(fileHandle = null) {
+      if (!window.showOpenFilePicker) return alert('Escolher arquivos das pastas funciona no Chrome ou no Edge.');
+      fileHandle ||= await pickAudioFile();
+      const item = fileHandle && await linkFileHandle(fileHandle);
+      if (item) addAudioVersionToTrack(item.blobKey);
+    }
+    async function pageAddVersionFile(fileHandle = null) {
+      if (!window.showOpenFilePicker) return alert('Escolher arquivos das pastas funciona no Chrome ou no Edge.');
+      fileHandle ||= await pickAudioFile();
+      const item = fileHandle && await linkFileHandle(fileHandle);
+      if (!item) return;
+      await addVersionToStoredTrack(trackPageId, item.blobKey);
+      focusedVersionKey = item.blobKey;
+      renderTrackPage();
+    }
+
+    const sha256Hex = async blob => [...new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const IMAGE_FILE_RE = /\.(jpe?g|png|webp|gif|avif)$/i;
+    async function pickImageFile() {
+      try { return (await window.showOpenFilePicker({id: 'matutando-music', types: [{description: 'Imagem', accept: {'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']}}]}))[0]; }
+      catch (err) { if (err.name !== 'AbortError') alert('Não foi possível abrir a imagem: ' + err.message); return null; }
+    }
+    // A cover from a music folder is linked like audio: the library keeps folder + path, nothing is copied.
+    async function linkCoverHandle(fileHandle) {
+      const where = await fileLocation(fileHandle);
+      if (!where) return null;
+      const linked = state.coverLibrary.find(c => c.folderId === where.folderId && c.path === where.path);
+      if (linked) return linked.url;
+      const file = await fileHandle.getFile();
+      const key = 'cover_' + (await sha256Hex(file)).slice(0, 32);
+      coverUrls.set(key, URL.createObjectURL(file));
+      const same = state.coverLibrary.find(c => c.url === key);
+      if (same) Object.assign(same, {folderId: where.folderId, path: where.path});
+      else state.coverLibrary.push({name: file.name, url: key, folderId: where.folderId, path: where.path});
+      saveData();
+      return key;
+    }
+    const COVER_FIELDS = {track: ['trackCoverLibrarySelect', () => selectCoverFromLibrary], scenario: ['scenarioCoverLibrarySelect', () => selectScenarioCoverFromLibrary], set: ['setCoverLibrarySelect', () => selectSetCoverFromLibrary]};
+    function applyCoverChoice(kind, key) {
+      populateCoverSelects();
+      const [selectId, select] = COVER_FIELDS[kind];
+      document.getElementById(selectId).value = key;
+      select()(key);
+    }
+    async function chooseCoverFile(kind) {
+      if (!window.showOpenFilePicker) return alert('Escolher arquivos das pastas funciona no Chrome ou no Edge.');
+      const fileHandle = await pickImageFile();
+      const key = fileHandle && await linkCoverHandle(fileHandle);
+      if (key) applyCoverChoice(kind, key);
+    }
+
+    /* SOLTAR ARQUIVOS NA FAIXA */
+    // Dropping files on a track adds them: audio becomes the new active version, an image becomes the cover.
+    // Listeners run in the capture phase because kanban cards and mini cards stop their own drop events.
+    function fileDropTarget(e) {
+      const modal = document.getElementById('trackModal');
+      if (modal.classList.contains('active')) { const el = e.target.closest?.('#trackModal .modal'); return el ? {draft: true, el} : null; }
+      const el = e.target.closest?.('[data-drop-track]');
+      if (el) return {trackId: el.dataset.dropTrack, el};
+      if (activeView === 'faixa' && e.target.closest?.('#view-faixa')) return {trackId: trackPageId, el: document.querySelector('#view-faixa .track-page')};
+      return null;
+    }
+    let dropHighlight = null;
+    function setDropHighlight(el) {
+      if (dropHighlight === el) return;
+      dropHighlight?.classList.remove('file-drop');
+      el?.classList.add('file-drop');
+      dropHighlight = el;
+    }
+    const isFileDrag = e => [...(e.dataTransfer?.types || [])].includes('Files');
+    document.addEventListener('dragover', e => {
+      if (!isFileDrag(e)) return;
+      const target = fileDropTarget(e);
+      setDropHighlight(target?.el || null);
+      if (target) { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; }
+    }, true);
+    document.addEventListener('dragleave', e => { if (isFileDrag(e) && !e.relatedTarget) setDropHighlight(null); }, true);
+    document.addEventListener('drop', e => {
+      if (!isFileDrag(e)) return;
+      const target = fileDropTarget(e);
+      setDropHighlight(null);
+      if (!target) return;
+      e.preventDefault(); e.stopPropagation();
+      // The handles must be requested while the event runs; the file list is gone once it returns.
+      const pending = [...e.dataTransfer.items].filter(i => i.kind === 'file').map(i => i.getAsFileSystemHandle ? i.getAsFileSystemHandle() : null);
+      handleDroppedFiles(target, pending);
+    }, true);
+    async function handleDroppedFiles(target, pending) {
+      if (!pending.length) return;
+      if (pending.some(p => !p)) return alert('Arrastar arquivos para as faixas funciona no Chrome ou no Edge.');
+      const handles = (await Promise.all(pending)).filter(h => h?.kind === 'file');
+      let added = 0;
+      for (const h of handles) {
+        if (AUDIO_FILE_RE.test(h.name)) {
+          const item = await linkFileHandle(h);
+          if (!item) continue;
+          if (target.draft) addAudioVersionToTrack(item.blobKey); else await addVersionToStoredTrack(target.trackId, item.blobKey);
+          added++;
+        } else if (IMAGE_FILE_RE.test(h.name)) {
+          const key = await linkCoverHandle(h);
+          if (!key) continue;
+          if (target.draft) applyCoverChoice('track', key);
+          else { const t = state.tracks.find(x => x.id === target.trackId); if (t) { t.cover = key; saveData(); } }
+          added++;
+        }
+      }
+      if (!added && handles.length) alert('Solte arquivos de áudio (wav, aiff, flac, mp3…) ou imagens (jpg, png, webp).');
+      if (!target.draft) renderAll();
+    }
+
     /* BIBLIOTECA DE ÁUDIOS */
     function renderAudioLibrary() {
       const container = document.getElementById('audioLibraryList');
@@ -1644,7 +1764,14 @@
         populateAudioSelects();
         return;
       }
+      const usedIn = key => state.tracks.filter(t => t.audio === key || (t.audioHistory || []).includes(key)).map(t => t.title);
+      const ok = state.audioLibrary.filter(a => a.url).length, unused = state.audioLibrary.filter(a => !usedIn(a.blobKey || a.url).length).length;
+      const summary = document.createElement('p');
+      summary.className = 'row-sub';
+      summary.textContent = `${state.audioLibrary.length} áudios • ${ok} tocando • ${state.audioLibrary.length - ok} não encontrados • ${unused} sem faixa`;
+      container.appendChild(summary);
       state.audioLibrary.forEach((item, idx) => {
+        const tracks = usedIn(item.blobKey || item.url);
         const div = document.createElement('div');
         div.className = 'panel-item';
         div.innerHTML = `
@@ -1655,6 +1782,7 @@
               : item.url ? '(link externo)'
               : item.path ? '⚠ não encontrado: ' + escapeHtml(item.path)
               : '⚠ fora das pastas vinculadas'}</span>
+            <div class="row-sub" style="white-space:normal;">${tracks.length ? 'Em: ' + tracks.map(escapeHtml).join(', ') : 'Sem faixa'}</div>
           </div>
           <div style="display:flex; gap:6px; flex-shrink:0;">
             ${(item.blobKey || item.path) && !linkedOk.has(item.blobKey) && window.showOpenFilePicker ? `<button class="btn-action" style="padding:4px 10px; font-size:0.75rem;" onclick="pointAudioToFile(${jsArg(item.blobKey)})" title="Escolha o arquivo deste áudio numa pasta de música">Indicar arquivo</button>` : ''}
@@ -1673,42 +1801,7 @@
         (state.audioLibrary || []).map(a => `<option value="${escapeHtml(a.blobKey || a.url)}">${escapeHtml(a.name)}</option>`).join('');
     }
 
-    async function addAudioToLibrary() {
-      const nameInput = document.getElementById('newAudioName');
-      const name = nameInput.value.trim();
-      const urlInput = document.getElementById('newAudioUrl').value.trim();
 
-      if(!name) return alert('Preencha o nome do áudio.');
-
-      if(selectedAudioFileCache) {
-        const blobKey = newId('audio_');
-        try {await saveAudioBlobToDB(blobKey, selectedAudioFileCache);} catch (err) {alert('Não foi possível armazenar o áudio. Tente novamente ou exporte um backup.'); return;}
-        const blobUrl = URL.createObjectURL(selectedAudioFileCache);
-        
-        state.audioLibrary.push({ name, blobKey, url: blobUrl });
-        selectedAudioFileCache = null;
-      } else if(urlInput) {
-        if (!safeUrl(urlInput, 'audio')) return alert('Informe uma URL válida de áudio.');
-        state.audioLibrary.push({ name, url: urlInput });
-      } else {
-        return alert('Selecione um arquivo de áudio local ou informe uma URL.');
-      }
-
-      nameInput.value = '';
-      document.getElementById('newAudioUrl').value = '';
-      document.getElementById('audioLibFile').value = '';
-      saveData();
-      renderAudioLibrary();
-    }
-
-    function handleAudioFileSelection(event) {
-      const file = event.target.files[0];
-      if(!file) {selectedAudioFileCache = null; return;}
-      selectedAudioFileCache = file;
-      document.getElementById('newAudioName').value = document.getElementById('newAudioName').value || file.name;
-      document.getElementById('newAudioUrl').value = '';
-      document.getElementById('newAudioUrl').placeholder = 'Arquivo selecionado: ' + file.name;
-    }
 
     function removeAudioFromLibrary(idx) {
       const item = state.audioLibrary[idx]; if (!item) return;
@@ -1776,9 +1869,9 @@
       });
     }
 
-    function addAudioVersionToTrack() {
+    function addAudioVersionToTrack(key = null) {
       const select = document.getElementById('trackAudioLibrarySelect');
-      const val = select.value;
+      const val = key || select.value;
       if(!val) return alert('Selecione um áudio da biblioteca.');
 
       if(!draftTrack.audioHistory) draftTrack.audioHistory = [];
@@ -1788,11 +1881,12 @@
         if (previous) offerCarryOver(previous, val);
       }
 
-      if(!draftTrack.audio || draftTrack.audioHistory.length === 1) {
-        draftTrack.audio = val;
-        document.getElementById('trackAudio').value = val;
-      }
+      // The version just added is the newest, so it becomes the active one.
+      draftTrack.audio = val;
+      document.getElementById('trackAudio').value = val;
+      focusedVersionKey = val;
 
+      populateAudioSelects();
       select.value = '';
       renderModalAudioHistory();
     }
@@ -2064,7 +2158,8 @@
         card.innerHTML = `
           <img src="${escapeHtml(coverSrc(item.url))}" style="width:100%; height:90px; object-fit:cover; border-radius: var(--radius);">
           <span style="font-size:0.75rem; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${escapeHtml(item.name)}</span>
-          <button class="btn-action" style="padding:2px 6px; font-size:10px; border:none; color:#ef4444;" onclick="removeCoverFromLibrary(${idx})">Remover</button>
+          <span class="row-sub" style="text-align:center;">${(n => n ? `em ${n} ${n === 1 ? 'item' : 'itens'}` : 'sem uso')(coverUsage(item.url))}${item.path ? ' • 📁' : ''}</span>
+          ${coverUsage(item.url) ? '' : `<button class="btn-action" style="padding:2px 6px; font-size:10px; border:none; color:#ef4444;" onclick="removeCoverFromLibrary(${idx})">Remover</button>`}
         `;
         grid.appendChild(card);
       });
@@ -2085,34 +2180,11 @@
       setSelect.innerHTML = opts;
     }
 
-    async function addCoverToLibrary() {
-      const name = document.getElementById('newCoverName').value.trim();
-      let url = document.getElementById('newCoverUrl').value.trim();
-      if(!name || !url) return alert('Preencha o nome e a URL da capa.');
-      if(!safeUrl(url, 'image')) return alert('Informe uma imagem ou URL válida.');
-      if (url.startsWith('data:image/')) {
-        try { url = await storeCover(url); } catch (err) { console.warn('Capa guardada no formato antigo', err); }
-      }
-      state.coverLibrary.push({ name, url });
-      document.getElementById('newCoverName').value = '';
-      document.getElementById('newCoverUrl').value = '';
-      document.getElementById('coverLibFile').value = '';
-      saveData();
-      renderCoverLibrary();
-    }
 
-    function handleCoverLibUpload(event) {
-      const file = event.target.files[0];
-      if(!file) return;
-      document.getElementById('newCoverName').value = document.getElementById('newCoverName').value || file.name;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        document.getElementById('newCoverUrl').value = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
 
+    const coverUsage = url => [...state.tracks, ...state.scenarios, ...state.sets].filter(x => x.cover === url).length;
     function removeCoverFromLibrary(idx) {
+      if (!state.coverLibrary[idx] || coverUsage(state.coverLibrary[idx].url)) return alert('Esta capa está em uso. Troque a capa nas faixas, releases e sets antes de removê-la.');
       state.coverLibrary.splice(idx, 1);
       saveData();
       renderCoverLibrary();
@@ -2716,6 +2788,7 @@
         tracksInState.forEach(track => {
           const card = document.createElement('div');
           card.className = 'kanban-card';
+          card.dataset.dropTrack = track.id;
           card.draggable = true;
           card.style.borderLeft = `3px solid ${track.color || '#ffffff'}`;
           card.onclick = () => openTrackModal(track.id);
@@ -3030,6 +3103,7 @@
         if (view === 'grid') {
           const tile = document.createElement('div');
           tile.className = 'cat-tile';
+          tile.dataset.dropTrack = track.id;
           tile.onclick = () => openTrackModal(track.id);
           tile.innerHTML = `${track.cover ? `<img src="${escapeHtml(coverSrc(track.cover))}" class="tile-cover" alt="">` : `<div class="tile-cover" style="border-bottom:3px solid ${track.color || '#fff'};">${escapeHtml((track.title || '?').slice(0, 1))}</div>`}
             ${playBtn(28)}
@@ -3040,6 +3114,7 @@
         }
         const row = document.createElement('div');
         row.className = 'splice-row';
+        row.dataset.dropTrack = track.id;
         row.onclick = () => openTrackModal(track.id);
         if (view === 'compact') {
           const c = STATUS_COLORS[track.status] || '#ffffff';
@@ -3811,6 +3886,7 @@
     function createTrackMiniCard(track, parentId, index, context = 'scenario') {
       const div = document.createElement('div');
       div.className = 'track-mini';
+      div.dataset.dropTrack = track.id;
       div.draggable = true;
       div.style.borderLeft = `2px solid ${track.color || '#fff'}`;
       
