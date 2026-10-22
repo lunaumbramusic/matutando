@@ -450,14 +450,28 @@
             <div id="tagList" class="panel-item-list" style="margin-top: 16px;"></div>
           </div>
 
+          <!-- PASTAS DE MÚSICA -->
+          <div class="panel-box" style="background:var(--bg-card); border:1px solid var(--border-color); padding:20px; border-radius: var(--radius); margin-bottom: 24px;">
+            <h3>Pastas de Música</h3>
+            <p class="row-sub">O matutando não copia suas músicas: ele lembra onde cada arquivo está nestas pastas, neste computador. No Chrome, escolha "Permitir em todas as visitas" para não precisar autorizar de novo.</p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-primary" onclick="linkMusicFolder()">+ Vincular pasta</button>
+              <button class="btn-action" style="padding:8px 12px;" onclick="relinkAudios()">Procurar áudios nas pastas</button>
+              <button class="btn-action" style="padding:8px 12px; display:none;" id="btnFreeSpace" onclick="freeBrowserCopies()">Liberar espaço</button>
+            </div>
+            <div id="relinkReport" class="row-sub"></div>
+            <div id="musicFolderList" class="panel-item-list"></div>
+          </div>
+
           <!-- BIBLIOTECA DE ÁUDIOS -->
           <div class="panel-box" style="background:var(--bg-card); border:1px solid var(--border-color); padding:20px; border-radius: var(--radius); margin-bottom: 24px;">
             <h3>Biblioteca de Áudios (Músicas)</h3>
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
               <input type="text" id="newAudioName" placeholder="Título / Nome do Áudio" style="flex:1; min-width:200px;">
-              <input type="file" id="audioLibFile" accept="audio/*" onchange="handleAudioFileSelection(event)" style="padding:6px; background:var(--bg-dark); border:1px solid var(--border-color); border-radius: var(--radius); color:var(--text-main);">
+              <button class="btn-primary" onclick="addLinkedAudio()" title="Escolha um arquivo numa das pastas de música; nada é copiado">Escolher arquivo…</button>
+              <input type="file" id="audioLibFile" accept="audio/*" onchange="handleAudioFileSelection(event)" style="display:none;">
               <input type="text" id="newAudioUrl" placeholder="Ou URL do áudio (.mp3, .wav)..." style="flex:2; min-width:250px;">
-              <button class="btn-primary" onclick="addAudioToLibrary()">Adicionar à Biblioteca</button>
+              <button class="btn-action" style="padding:8px 12px;" onclick="addAudioToLibrary()">Adicionar URL</button>
             </div>
             <div id="audioLibraryList" class="panel-item-list" style="margin-top: 16px;"></div>
           </div>
@@ -540,6 +554,12 @@
       <span id="backupToastText" style="font-size:0.85rem;"></span>
       <button class="btn-primary" onclick="exportData()">Fazer backup agora</button>
       <button class="btn-secondary" onclick="hideBackupToast()">Depois</button>
+    </div>
+
+    <div id="folderToast" role="status" style="display:none; position:fixed; right:24px; bottom:160px; z-index:950; gap:12px; align-items:center; background:var(--bg-card); border:1px solid var(--accent-gold); padding:12px 16px; box-shadow:0 12px 30px rgba(0,0,0,0.7);">
+      <span style="font-size:0.85rem;">Para tocar, o Chrome precisa da sua permissão nas pastas de música.</span>
+      <button class="btn-primary" onclick="grantFolderAccess()">Permitir</button>
+      <button class="btn-secondary" onclick="document.getElementById('folderToast').style.display='none'">Depois</button>
     </div>
 
     <!-- PLAYER GLOBAL FIXO NO RODAPÉ -->
@@ -963,7 +983,8 @@
       sets: [],
       coverLibrary: [],
       audioLibrary: [],
-      contacts: []
+      contacts: [],
+      musicFolders: []
     };
 
     let selectedAudioFileCache = null;
@@ -996,7 +1017,7 @@
     function normalizeState(input) {
       if (!input || typeof input !== 'object' || !Array.isArray(input.tracks)) throw Error('O arquivo precisa conter uma lista de faixas.');
       const data = JSON.parse(JSON.stringify(input));
-      const keys = ['projects','collaborators','labels','genres','tags','scenarios','sets','coverLibrary','audioLibrary','contacts'];
+      const keys = ['projects','collaborators','labels','genres','tags','scenarios','sets','coverLibrary','audioLibrary','contacts','musicFolders'];
       for (const key of keys) {
         if (data[key] == null) data[key] = [];
         if (!Array.isArray(data[key])) throw Error('Lista inválida: ' + key);
@@ -1086,8 +1107,20 @@
       });
       for (const item of data.sets) if (!contactIds.has(item.contractorId)) item.contractorId = '';
       for (const item of data.coverLibrary) {if(!item || typeof item !== 'object') throw Error('Capa inválida'); item.name=String(item.name || 'Capa');item.url=safeUrl(item.url,'image');}
+      const folderIds = new Set();
+      data.musicFolders = data.musicFolders.map(f => {
+        if (!f || typeof f !== 'object') throw Error('Pasta inválida');
+        const id = String(f.id || '');
+        if (!/^[\w-]+$/.test(id) || folderIds.has(id)) throw Error('Identificador inválido ou repetido: musicFolders');
+        folderIds.add(id);
+        return {id, name: String(f.name || 'Pasta')};
+      });
       for (const item of data.audioLibrary) {
         if(!item || typeof item !== 'object') throw Error('Áudio inválido');
+        item.folderId = folderIds.has(item.folderId) ? item.folderId : '';
+        item.path = typeof item.path === 'string' && !item.path.split('/').some(p => !p || p === '..') ? item.path : '';
+        item.size = Number(item.size) > 0 ? Number(item.size) : 0;
+        item.lastModified = Number(item.lastModified) > 0 ? Number(item.lastModified) : 0;
         item.name=String(item.name || 'Áudio'); item.url=safeUrl(item.url,'audio');
         if (item.comments != null && !Array.isArray(item.comments)) throw Error('Lista inválida: comments');
         item.comments = (item.comments || []).map(c => {
@@ -1109,10 +1142,17 @@
       try { localStorage.setItem('STUDIO_DATA', JSON.stringify(next)); }
       catch (err) { alert('Não foi possível salvar. O armazenamento pode estar cheio ou indisponível. Exporte um backup antes de fechar o app.'); throw err; }
     }
+    // A linked audio is read from its folder; an old in-browser copy is the fallback until it is freed.
     async function restoreAudioLibrary(data) {
       for (const item of data.audioLibrary) {
-        if (item.blobKey) {
+        if (item.blobKey || item.path) {
           item.url = '';
+          linkedOk.delete(item.blobKey);
+          if (item.path) {
+            const file = await linkedFile(item).catch(() => null);
+            if (file) { item.url = URL.createObjectURL(file); linkedOk.add(item.blobKey); continue; }
+          }
+          if (!item.blobKey) continue;
           try { const blob = await getAudioBlobFromDB(item.blobKey); if (blob) item.url = URL.createObjectURL(blob); }
           catch (err) { console.warn('Áudio local indisponível', err); }
         } else if ((item.url || '').startsWith('blob:')) item.url = '';
@@ -1265,6 +1305,7 @@
       if (e.key !== 'STUDIO_DATA' || !e.newValue || storageBlocked) return;
       try {
         const next = normalizeState(JSON.parse(e.newValue));
+        await refreshFolderAccess(false, next);
         await restoreAudioLibrary(next);
         await restoreCovers(next);
         state = next; lastSavedState = JSON.stringify(state);
@@ -1282,6 +1323,8 @@
         storageBlocked = true;
         alert('Os dados salvos não puderam ser carregados. Eles foram preservados. Importe um backup válido para continuar.');
       }
+      await loadFolderHandles();
+      await refreshFolderAccess();
       await restoreAudioLibrary(state);
       if (!storageBlocked) {
         // One-time migrations, saved right away: covers out of localStorage, and a start date for each track's status.
@@ -1295,13 +1338,14 @@
       backupDir = await getSetting('backupDir').catch(() => null) || null;
       setupCatalogFilters(); renderAll();
       remindBackup();
+      if ([...folderAccess.values()].includes('prompt')) document.getElementById('folderToast').style.display = 'flex';
     }
 
     // Only the visible view is rebuilt; switchView renders the next one when it is opened.
     let activeView = 'hoje';
     const VIEW_RENDERERS = {
       hoje: () => renderHoje(), faixa: () => renderTrackPage(), mesa: () => renderMesa(), tarefas: () => renderGlobalTasks(), demos: () => renderDemos(), aprendizados: () => renderGlobalAprendizados(),
-      catalogo: () => renderCatalogo(), projetos: () => { renderCadastrosBase(); renderAudioLibrary(); renderCoverLibrary(); },
+      catalogo: () => renderCatalogo(), projetos: () => { renderCadastrosBase(); renderAudioSettings(); renderCoverLibrary(); },
       matutando: () => renderMatutandoE_Releases(), releases: () => renderMatutandoE_Releases(), sets: () => renderSetsView(), contatos: () => renderContacts(), financeiro: () => renderFinanceiro()
     };
     function renderAll() {
@@ -1347,6 +1391,249 @@
       renderAll();
     }
 
+    /* PASTAS DE MÚSICA (vínculo, sem cópia) */
+    // The catalog keeps each folder's id and name, and each audio's folder id + path inside it (both go in backups).
+    // The folder handles — the actual access — live only in this browser (MatutandoDB settings), so linking is per device.
+    const AUDIO_FILE_RE = /\.(wav|aiff?|flac|mp3|m4a|aac|ogg|opus|webm)$/i;
+    let folderHandles = {};          // folderId -> FileSystemDirectoryHandle on this device
+    const folderAccess = new Map();  // folderId -> 'ok' | 'prompt' | 'missing'
+    const linkedOk = new Set();      // keys of audios currently read straight from their folder
+
+    async function loadFolderHandles() { folderHandles = await getSetting('musicFolderHandles').catch(() => null) || {}; }
+    const saveFolderHandles = () => putSetting('musicFolderHandles', folderHandles);
+    async function folderPermission(id, ask = false) {
+      const h = folderHandles[id];
+      if (!h) return 'missing';
+      try {
+        if (await h.queryPermission({mode: 'read'}) === 'granted') return 'ok';
+        if (ask && await h.requestPermission({mode: 'read'}) === 'granted') return 'ok';
+      } catch {}
+      return 'prompt';
+    }
+    // ask=true only from a click: Chrome shows its permission prompt for each folder not yet allowed.
+    async function refreshFolderAccess(ask = false, data = state) {
+      for (const f of data.musicFolders || []) folderAccess.set(f.id, await folderPermission(f.id, ask));
+    }
+    async function linkedFile(item) {
+      if (!item.path || folderAccess.get(item.folderId) !== 'ok') return null;
+      let dir = folderHandles[item.folderId];
+      const parts = item.path.split('/');
+      for (const part of parts.slice(0, -1)) dir = await dir.getDirectoryHandle(part);
+      return (await dir.getFileHandle(parts.at(-1))).getFile();
+    }
+
+    async function* walkAudioFiles(dir, prefix = '') {
+      for await (const [name, h] of dir.entries()) {
+        const path = prefix ? prefix + '/' + name : name;
+        if (h.kind === 'directory') yield* walkAudioFiles(h, path);
+        else if (AUDIO_FILE_RE.test(name)) yield {path, handle: h};
+      }
+    }
+    // Exact byte size is the strong signal (two exports rarely share it); the file name breaks ties
+    // and is the fallback when the size is unknown or the file was re-exported. Ambiguous items stay unmatched.
+    function matchAudioFiles(items, files) {
+      const stem = s => String(s || '').toLowerCase().replace(/\.[^./]+$/, '').trim();
+      const used = new Set(), out = [];
+      for (const it of items) {
+        const free = files.filter(f => !used.has(f));
+        const sameName = f => stem(f.name) === stem(it.name) || (!!it.path && f.name === it.path.split('/').at(-1));
+        let cands = it.size ? free.filter(f => f.size === it.size) : [];
+        if (cands.length > 1) cands = cands.filter(sameName);
+        if (!cands.length) cands = free.filter(sameName);
+        if (cands.length === 1) { used.add(cands[0]); out.push({key: it.key, file: cands[0]}); }
+      }
+      return out;
+    }
+    async function audioDBKeys() {
+      const db = await openAudioDB();
+      return new Promise(ok => {
+        const tx = db.transaction('audios', 'readonly'), req = tx.objectStore('audios').getAllKeys();
+        tx.oncomplete = () => { db.close(); ok(new Set(req.result)); };
+        tx.onerror = tx.onabort = () => { db.close(); ok(new Set()); };
+      });
+    }
+
+    // Finds every library audio not playing from a folder (old browser copies, moved files, backups from elsewhere)
+    // among the files of the linked folders, and records where it is.
+    async function relinkAudios() {
+      const report = document.getElementById('relinkReport');
+      if (report) report.textContent = 'Procurando áudios nas pastas…';
+      const files = [];
+      const errors = [];
+      for (const f of state.musicFolders) {
+        if (folderAccess.get(f.id) !== 'ok') continue;
+        if (report) report.textContent = `Lendo a pasta "${f.name}"…`;
+        try {
+          for await (const entry of walkAudioFiles(folderHandles[f.id])) {
+            const file = await entry.handle.getFile();
+            files.push({folderId: f.id, path: entry.path, name: file.name, size: file.size, lastModified: file.lastModified});
+          }
+        } catch (err) { console.error('Ler pasta', f.name, err); errors.push(`"${f.name}": ${err.name}: ${err.message}`); }
+      }
+      const pending = state.audioLibrary.filter(a => (a.blobKey || a.path) && !linkedOk.has(a.blobKey));
+      const keys = await audioDBKeys().catch(() => new Set());
+      const items = [];
+      for (const a of pending) {
+        const size = a.size || (keys.has(a.blobKey) ? (await getAudioBlobFromDB(a.blobKey).catch(() => null))?.size : 0) || 0;
+        items.push({key: a.blobKey, name: a.name, size, path: a.path});
+      }
+      const matches = matchAudioFiles(items, files);
+      for (const {key, file} of matches) {
+        const a = state.audioLibrary.find(x => x.blobKey === key);
+        Object.assign(a, {folderId: file.folderId, path: file.path, size: file.size, lastModified: file.lastModified});
+      }
+      if (matches.length) saveData();
+      await restoreAudioLibrary(state);
+      const missing = state.audioLibrary.filter(a => (a.blobKey || a.path) && !linkedOk.has(a.blobKey)).length;
+      if (report) report.textContent = `${files.length} arquivos de áudio nas pastas • ${matches.length} áudio${matches.length === 1 ? '' : 's'} vinculado${matches.length === 1 ? '' : 's'} agora • ${missing} ainda fora das pastas`
+        + (errors.length ? ` • erro ao ler ${errors.join('; ')}` : '');
+      renderAudioSettings();
+      return {files: files.length, matched: matches.length, missing};
+    }
+
+    async function linkMusicFolder(existingId = null) {
+      if (!canPickFolder()) return alert('Vincular pastas funciona no Chrome ou no Edge.');
+      let handle;
+      try { handle = await window.showDirectoryPicker({id: 'matutando-music', mode: 'read'}); }
+      catch (err) { if (err.name !== 'AbortError') alert('Não foi possível usar essa pasta: ' + err.message); return; }
+      try { await attachFolder(handle, existingId); }
+      catch (err) { console.error('Vincular pasta', err); alert(`Erro ao vincular a pasta "${handle.name}": ${err.name}: ${err.message}`); renderAudioSettings(); }
+    }
+    // A folder already in the catalog (from a backup or another browser) is reconnected by name or by being the same folder.
+    async function attachFolder(handle, existingId = null, relink = true) {
+      let folder = existingId ? state.musicFolders.find(f => f.id === existingId) : null;
+      for (const [id, h] of Object.entries(folderHandles)) if (!folder && await h.isSameEntry(handle).catch(() => false)) folder = state.musicFolders.find(f => f.id === id);
+      folder ||= state.musicFolders.find(f => f.name === handle.name && !folderHandles[f.id]);
+      if (!folder) { folder = {id: newId('folder_'), name: handle.name}; state.musicFolders.push(folder); }
+      folderHandles[folder.id] = handle;
+      saveData();
+      renderAudioSettings();
+      // Remembering the access for next time can fail (e.g. some browsers refuse to store folder access for pages
+      // opened from disk); the folder still works now, so warn instead of stopping.
+      try { await saveFolderHandles(); }
+      catch (err) {
+        console.warn('Acesso à pasta não guardado', err);
+        alert(`A pasta "${folder.name}" foi vinculada, mas o navegador não deixou guardar o acesso para a próxima vez (${err.name}: ${err.message}). Ela funciona até você fechar o app.`);
+      }
+      await refreshFolderAccess();
+      await restoreAudioLibrary(state);
+      if (relink) await relinkAudios(); else renderAudioSettings();
+      return folder;
+    }
+    async function grantFolderAccess() {
+      await refreshFolderAccess(true);
+      await restoreAudioLibrary(state);
+      document.getElementById('folderToast').style.display = 'none';
+      renderAudioSettings();
+    }
+    function removeMusicFolder(id) {
+      const folder = state.musicFolders.find(f => f.id === id), used = state.audioLibrary.filter(a => a.folderId === id);
+      if (!folder || !confirm(used.length ? `Remover a pasta "${folder.name}"? ${used.length} áudio(s) perdem o vínculo até você vincular a pasta de novo.` : `Remover a pasta "${folder.name}"?`)) return;
+      for (const a of used) { a.folderId = ''; linkedOk.delete(a.blobKey); a.url = ''; }
+      state.musicFolders = state.musicFolders.filter(f => f.id !== id);
+      delete folderHandles[id]; folderAccess.delete(id);
+      saveFolderHandles().catch(() => {});
+      saveData(); renderAudioSettings();
+    }
+
+    // Deletes the old in-browser copies of audios that now play from a folder, plus copies no audio uses anymore.
+    async function freeBrowserCopies() {
+      const keys = await audioDBKeys().catch(() => new Set());
+      const libraryKeys = new Set(state.audioLibrary.map(a => a.blobKey).filter(Boolean));
+      const linked = [...keys].filter(k => linkedOk.has(k)), orphans = [...keys].filter(k => !libraryKeys.has(k));
+      if (!linked.length && !orphans.length) return alert('Não há cópias para apagar.');
+      if (!confirm(`Apagar do navegador ${linked.length} cópia(s) de áudios que já tocam das pastas e ${orphans.length} cópia(s) que nenhum áudio usa? Seus arquivos nas pastas não são tocados.`)) return;
+      for (const k of [...linked, ...orphans]) await deleteAudioBlobFromDB(k).catch(() => {});
+      renderAudioSettings();
+    }
+
+    // Adding an audio links the file where it is; nothing is copied.
+    async function locateInFolders(fileHandle) {
+      for (const f of state.musicFolders) {
+        const parts = folderHandles[f.id] ? await folderHandles[f.id].resolve(fileHandle).catch(() => null) : null;
+        if (parts) return {folderId: f.id, path: parts.join('/')};
+      }
+      return null;
+    }
+    // Where a picked file sits among the linked folders; offers to link its folder when it is outside all of them.
+    async function fileLocation(fileHandle) {
+      let where = await locateInFolders(fileHandle);
+      if (!where) {
+        if (!confirm('Este arquivo está fora das pastas vinculadas. Vincular a pasta dele? O seletor abre na pasta do arquivo: confirme ou escolha uma pasta acima.')) return null;
+        let dir;
+        try { dir = await window.showDirectoryPicker({id: 'matutando-music', mode: 'read', startIn: fileHandle}); } catch { return null; }
+        await attachFolder(dir, null, false);
+        where = await locateInFolders(fileHandle);
+        if (!where) { alert('O arquivo não está dentro da pasta escolhida.'); return null; }
+      }
+      return where;
+    }
+    const AUDIO_PICKER = {id: 'matutando-music', types: [{description: 'Áudio', accept: {'audio/*': ['.wav', '.aif', '.aiff', '.flac', '.mp3', '.m4a', '.aac', '.ogg', '.opus']}}]};
+    async function pickAudioFile() {
+      try { return (await window.showOpenFilePicker(AUDIO_PICKER))[0]; }
+      catch (err) { if (err.name !== 'AbortError') alert('Não foi possível abrir o arquivo: ' + err.message); return null; }
+    }
+    // Points an existing library audio (not found automatically) to its file, keeping its comments, sections and track links.
+    async function pointAudioToFile(key, fileHandle = null) {
+      const item = state.audioLibrary.find(a => a.blobKey === key);
+      if (!item) return;
+      fileHandle ||= await pickAudioFile();
+      const where = fileHandle && await fileLocation(fileHandle);
+      if (!where) return;
+      const file = await fileHandle.getFile();
+      Object.assign(item, {folderId: where.folderId, path: where.path, size: file.size, lastModified: file.lastModified});
+      saveData();
+      await restoreAudioLibrary(state);
+      renderAudioSettings();
+    }
+    async function linkFileHandle(fileHandle, name = '') {
+      const where = await fileLocation(fileHandle);
+      if (!where) return null;
+      const existing = state.audioLibrary.find(a => a.folderId === where.folderId && a.path === where.path);
+      if (existing) return existing;
+      const file = await fileHandle.getFile();
+      const item = {name: name || file.name, blobKey: newId('audio_'), url: URL.createObjectURL(file), folderId: where.folderId, path: where.path,
+        size: file.size, lastModified: file.lastModified, comments: [], sections: []};
+      state.audioLibrary.push(item);
+      linkedOk.add(item.blobKey);
+      saveData();
+      return item;
+    }
+    async function addLinkedAudio() {
+      if (!window.showOpenFilePicker) return document.getElementById('audioLibFile').click(); // other browsers: old copy flow
+      const fileHandle = await pickAudioFile();
+      if (!fileHandle) return;
+      const nameInput = document.getElementById('newAudioName');
+      if (await linkFileHandle(fileHandle, nameInput.value.trim())) { nameInput.value = ''; renderAudioSettings(); }
+    }
+
+    async function renderMusicFolders() {
+      const list = document.getElementById('musicFolderList');
+      if (!list) return;
+      list.innerHTML = state.musicFolders.length ? '' : '<p class="hoje-empty">Nenhuma pasta vinculada. Vincule as pastas onde ficam suas músicas; o matutando lembra onde cada arquivo está, sem copiar nada.</p>';
+      for (const f of state.musicFolders) {
+        const st = folderAccess.get(f.id) || (folderHandles[f.id] ? 'prompt' : 'missing');
+        const n = state.audioLibrary.filter(a => a.folderId === f.id).length;
+        const row = document.createElement('div');
+        row.className = 'panel-item';
+        row.innerHTML = `<div style="min-width:0;"><strong>📁 ${escapeHtml(f.name)}</strong> <span class="row-sub">${n} áudio${n === 1 ? '' : 's'}</span>
+            <div class="row-sub" style="color:${st === 'ok' ? 'var(--status-lancada)' : '#eab308'};">${st === 'ok' ? '✓ acesso liberado' : st === 'prompt' ? '⚠ precisa da sua permissão' : '✗ não vinculada neste navegador'}</div></div>
+          <div style="display:flex; gap:6px;">
+            ${st === 'prompt' ? `<button class="btn-action" style="padding:4px 10px;" onclick="grantFolderAccess()">Permitir</button>` : ''}
+            ${st === 'missing' ? `<button class="btn-action" style="padding:4px 10px;" onclick="linkMusicFolder(${jsArg(f.id)})">Vincular</button>` : ''}
+            <button class="btn-action" style="padding:4px 8px; border:none; color:#ef4444;" title="Remover pasta" onclick="removeMusicFolder(${jsArg(f.id)})">✕</button>
+          </div>`;
+        list.appendChild(row);
+      }
+      const keys = await audioDBKeys().catch(() => new Set());
+      const libraryKeys = new Set(state.audioLibrary.map(a => a.blobKey).filter(Boolean));
+      const freeable = [...keys].filter(k => linkedOk.has(k) || !libraryKeys.has(k)).length;
+      const btn = document.getElementById('btnFreeSpace');
+      btn.style.display = freeable ? '' : 'none';
+      btn.textContent = `Liberar espaço (${freeable} cópia${freeable === 1 ? '' : 's'})`;
+    }
+    function renderAudioSettings() { renderMusicFolders(); renderAudioLibrary(); }
+
     /* BIBLIOTECA DE ÁUDIOS */
     function renderAudioLibrary() {
       const container = document.getElementById('audioLibraryList');
@@ -1362,9 +1649,17 @@
         div.className = 'panel-item';
         div.innerHTML = `
           <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;">
-            <strong>${escapeHtml(item.name)}</strong> <span style="color:var(--text-muted); font-size:0.75rem;">${item.url ? '(Disponível)' : '(Arquivo local ausente — reimporte o áudio)'}</span>
+            <strong>${escapeHtml(item.name)}</strong> <span style="color:${item.url ? 'var(--text-muted)' : '#eab308'}; font-size:0.75rem;">${
+              linkedOk.has(item.blobKey) ? '📁 ' + escapeHtml((state.musicFolders.find(f => f.id === item.folderId)?.name || '') + '/' + item.path)
+              : item.url && item.blobKey ? '(cópia no navegador — vincule a pasta deste áudio)'
+              : item.url ? '(link externo)'
+              : item.path ? '⚠ não encontrado: ' + escapeHtml(item.path)
+              : '⚠ fora das pastas vinculadas'}</span>
           </div>
-          <button class="btn-action" style="padding:4px 8px; border:none; color:#ef4444;" onclick="removeAudioFromLibrary(${idx})">✕</button>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            ${(item.blobKey || item.path) && !linkedOk.has(item.blobKey) && window.showOpenFilePicker ? `<button class="btn-action" style="padding:4px 10px; font-size:0.75rem;" onclick="pointAudioToFile(${jsArg(item.blobKey)})" title="Escolha o arquivo deste áudio numa pasta de música">Indicar arquivo</button>` : ''}
+            <button class="btn-action" style="padding:4px 8px; border:none; color:#ef4444;" onclick="removeAudioFromLibrary(${idx})">✕</button>
+          </div>
         `;
         container.appendChild(div);
       });
@@ -1892,6 +2187,10 @@
       if(!audioSource) {
         // The file can be stored while its object URL is not ready yet (startup restore, sync from another tab): read it once from IndexedDB before warning.
         const item = libItem(audioKey || track.audio);
+        if (item?.path && !retried && folderAccess.get(item.folderId) === 'prompt') {
+          grantFolderAccess().then(() => tocarFaixaById(trackId, audioKey, startAt, true));
+          return;
+        }
         if (item?.blobKey && !retried) {
           getAudioBlobFromDB(item.blobKey).catch(() => null).then(blob => {
             if (blob && !item.url) item.url = URL.createObjectURL(blob);
@@ -1901,7 +2200,10 @@
         }
         if (audioKey || (item && !safeUrl(track.audioExternal))) {
           console.warn('Áudio indisponível', {faixa: track.title, chave: audioKey || track.audio, item});
-          return alert('Este áudio não está disponível neste navegador. Reimporte o arquivo na Biblioteca de Áudios.');
+          const folder = state.musicFolders.find(f => f.id === item?.folderId);
+          return alert(item?.path
+            ? `Não encontrei "${item.path}" na pasta "${folder?.name || '?'}". Em Configurações → Pastas de Música, vincule a pasta ou use "Procurar áudios nas pastas".`
+            : 'Este áudio não está numa pasta vinculada nem no navegador. Em Configurações → Pastas de Música, vincule a pasta onde ele está e use "Procurar áudios nas pastas".');
         }
         if (safeUrl(track.audioExternal)) {window.open(safeUrl(track.audioExternal), '_blank', 'noopener,noreferrer'); return;}
         alert("Esta faixa não possui áudio ativo vinculado. Edite a faixa e defina uma versão ativa na aba de edições.");
@@ -3780,6 +4082,7 @@
             delete item.audioData;
           }
         }
+        await refreshFolderAccess(false, imported);
         await restoreAudioLibrary(imported);
         // Backups exported for a short while embedded covers (coverFiles); still accepted so those files restore fully.
         for (const [key, dataUrl] of Object.entries(coverFiles)) {
